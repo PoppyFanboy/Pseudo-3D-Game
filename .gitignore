@@ -1,0 +1,12 @@
+build/
+bin/
+.gradle/
+.idea/
+
+# eclipse project
+.settings/
+.project
+.classpath
+
+# ctags
+tags
