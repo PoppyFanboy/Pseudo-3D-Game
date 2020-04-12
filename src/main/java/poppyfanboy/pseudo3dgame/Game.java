@@ -2,9 +2,6 @@ package poppyfanboy.pseudo3dgame;
 
 import java.awt.Graphics2D;
 
-/**
- * A separate instance of the game including the game window.
- */
 public class Game {
     private static final int MAX_FRAMESKIP = 5;
     public static final int TICK_RATE = 50;
@@ -32,7 +29,9 @@ public class Game {
                     nextTick += TICK_DURATION;
                     frameSkipCount++;
                 }
-                render();
+                double interpolation = ((double) System.nanoTime()
+                        - (nextTick - TICK_DURATION)) / TICK_DURATION;
+                render(interpolation);
             }
         });
         thread.start();
@@ -41,7 +40,7 @@ public class Game {
     private void tick() {
     }
 
-    private void render() {
+    private void render(double interpolation) {
         Graphics2D g = display.getGraphics();
         g.fillRect(40, 40, 40, 40);
         g.dispose();

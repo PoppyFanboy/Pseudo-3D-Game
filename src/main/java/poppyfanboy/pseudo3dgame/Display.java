@@ -4,9 +4,6 @@ import java.awt.*;
 import java.awt.image.BufferStrategy;
 import javax.swing.JFrame;
 
-/**
- * A game window.
- */
 public class Display {
     private final BufferStrategy bufferStrategy;
     private Canvas canvas;
