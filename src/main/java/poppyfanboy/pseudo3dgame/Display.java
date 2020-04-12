@@ -1,6 +1,7 @@
 package poppyfanboy.pseudo3dgame;
 
 import java.awt.*;
+import java.awt.event.KeyListener;
 import java.awt.image.BufferStrategy;
 import javax.swing.JFrame;
 
@@ -8,7 +9,8 @@ public class Display {
     private final BufferStrategy bufferStrategy;
     private Canvas canvas;
 
-    public Display(int width, int height, String title) {
+    public Display(int width, int height, String title,
+            KeyListener keyListener) {
         // window
         JFrame frame = new JFrame();
         frame.setTitle(title);
@@ -16,6 +18,7 @@ public class Display {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setResizable(false);
         frame.setLocationRelativeTo(null);
+        frame.addKeyListener(keyListener);
         frame.setVisible(true);
         // canvas
         canvas = new Canvas();

@@ -1,8 +1,7 @@
 package poppyfanboy.pseudo3dgame.logic;
-;
+
 import java.util.Iterator;
 import java.util.function.IntFunction;
-import poppyfanboy.pseudo3dgame.util.Double2;
 import poppyfanboy.pseudo3dgame.util.Int2;
 
 public class TileField {
@@ -17,11 +16,6 @@ public class TileField {
     public TileField(Int2 size) {
         this.size = size;
         map = new int[size.x * size.y];
-        // test code
-        Player player = new Player(new Double2(1.5, 1.5));
-        Level level = new Level();
-        player.put(this);
-        level.put(this);
     }
 
     public boolean isEmpty(Int2 coords) {
@@ -36,7 +30,7 @@ public class TileField {
         if (tileValue == 0) {
             return TileType.EMPTY;
         }
-        return TileType.values()[Integer.numberOfLeadingZeros(tileValue) + 1];
+        return TileType.values()[Integer.numberOfTrailingZeros(tileValue) + 1];
     }
 
     public Iterator<TileType> getTiles(Int2 coords) {
@@ -69,9 +63,13 @@ public class TileField {
         };
     }
 
+    public Int2 getSize() {
+        return size;
+    }
+
     private boolean rangeCheck(Int2 coords) {
-        return coords.x < 0 || coords.y < 0
-                || coords.x >= size.x || coords.y >= size.y;
+        return coords.x >= 0 && coords.y >= 0
+                && coords.x < size.x && coords.y < size.y;
     }
 
     private int mapIndex(Int2 coords) {

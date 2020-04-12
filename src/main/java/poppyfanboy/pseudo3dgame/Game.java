@@ -1,6 +1,8 @@
 package poppyfanboy.pseudo3dgame;
 
 import java.awt.Graphics2D;
+import poppyfanboy.pseudo3dgame.graphics.GameMap;
+import poppyfanboy.pseudo3dgame.logic.WalkingGameplay;
 
 public class Game {
     private static final int MAX_FRAMESKIP = 5;
@@ -10,10 +12,15 @@ public class Game {
     private Resolution resolution = Resolution._640x480;
     private Display display;
     private Thread thread;
+    private KeyManager keyManager = new KeyManager();
+
+    private WalkingGameplay gameLogic = new WalkingGameplay();
+    private GameMap gameMap = new GameMap(gameLogic);
 
     public Game(Resolution resolution) {
         display = new Display(resolution.getWidth(), resolution.getHeight(),
-                "test");
+                "test", keyManager);
+        keyManager.addListener(gameLogic);
     }
 
     public synchronized void start() {
@@ -42,7 +49,7 @@ public class Game {
 
     private void render(double interpolation) {
         Graphics2D g = display.getGraphics();
-        g.fillRect(40, 40, 40, 40);
+        gameMap.render(g);
         g.dispose();
         display.render();
     }
