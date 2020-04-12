@@ -14,13 +14,13 @@ public class Game {
     private Thread thread;
     private KeyManager keyManager = new KeyManager();
 
-    private WalkingGameplay gameLogic = new WalkingGameplay();
-    private GameMap gameMap = new GameMap(gameLogic);
+    private WalkingGameplay gameplay = new WalkingGameplay();
+    private GameMap gameMap = new GameMap(gameplay);
 
     public Game(Resolution resolution) {
         display = new Display(resolution.getWidth(), resolution.getHeight(),
                 "test", keyManager);
-        keyManager.addListener(gameLogic);
+        keyManager.addListener(gameplay);
     }
 
     public synchronized void start() {
@@ -45,6 +45,7 @@ public class Game {
     }
 
     private void tick() {
+        keyManager.tick();
     }
 
     private void render(double interpolation) {

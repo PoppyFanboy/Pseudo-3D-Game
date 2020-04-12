@@ -22,18 +22,20 @@ public class TileField {
         return !rangeCheck(coords) || map[mapIndex(coords)] == 0;
     }
 
-    public TileType getTile(Int2 coords) {
+    public Tile getTile(Int2 coords) {
         if (!rangeCheck(coords)) {
-            return TileType.EMPTY;
+            return new Tile(TileType.EMPTY, coords);
         }
         int tileValue = map[mapIndex(coords)];
         if (tileValue == 0) {
-            return TileType.EMPTY;
+            return new Tile(TileType.EMPTY, coords);
         }
-        return TileType.values()[Integer.numberOfTrailingZeros(tileValue) + 1];
+        TileType tileType = TileType
+                .values()[Integer.numberOfTrailingZeros(tileValue) + 1];
+        return new Tile(tileType, coords);
     }
 
-    public Iterator<TileType> getTiles(Int2 coords) {
+    public Iterator<Tile> getTiles(Int2 coords) {
         return new Iterator<>() {
             int tileValue = rangeCheck(coords) ? map[mapIndex(coords)] : 0;
             int tileIndex = tileValue == 0 ? 0 : 1;
@@ -46,19 +48,19 @@ public class TileField {
             }
 
             @Override
-            public TileType next() {
+            public Tile next() {
                 if (tileIndex == 0) {
                     tileIndex = -1;
-                    return TileType.EMPTY;
+                    return new Tile(TileType.EMPTY, coords);
                 }
                 int shift = Integer.numberOfTrailingZeros(tileValue);
-                TileType next = TileType.values()[tileIndex + shift];
+                TileType tileType = TileType.values()[tileIndex + shift];
                 tileIndex += shift + 1;
                 tileValue >>= shift + 1;
                 if (tileValue == 0) {
                     tileIndex = -1;
                 }
-                return next;
+                return new Tile(tileType, coords);
             }
         };
     }
@@ -104,6 +106,10 @@ public class TileField {
             this.tileType = tileType;
             this.coords = coords;
         }
+
+        public Tile shift(Int2 v) {
+            return new Tile(tileType, coords.add(v));
+        }
     }
 
     public interface TileFieldObject {
@@ -117,6 +123,19 @@ public class TileField {
             for (int i = 0; i < other.tilesCount(); i++) {
                 if (this.collides(other.tiles().apply(i)))
                     return true;
+            }
+            return false;
+        }
+
+        /**
+         * The {@code other} object is shifted in the specified direction and
+         * then the collision is tested.
+         */
+        default boolean collides(TileFieldObject other, Int2 shift) {
+            for (int i = 0; i < other.tilesCount(); i++) {
+                if (this.collides(other.tiles().apply(i).shift(shift))) {
+                    return true;
+                }
             }
             return false;
         }

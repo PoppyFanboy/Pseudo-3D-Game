@@ -45,16 +45,17 @@ public class KeyManager extends KeyAdapter {
                 }
             });
         }
-        updatedActions.clear();
 
-        for (var action : actionStates.entrySet()) {
-            switch (action.getValue()) {
+        for (Action action : updatedActions) {
+            switch (actionStates.get(action)) {
                 case FIRED:
-                    action.setValue(State.HELD);
-                    updatedActions.add(action.getKey());
+                    actionStates.put(action, State.HELD);
                     break;
                 case RELEASED:
-                    action.setValue(State.INACTIVE);
+                    actionStates.put(action, State.INACTIVE);
+                    break;
+                default:
+                    updatedActions.remove(action);
                     break;
             }
         }
@@ -66,8 +67,10 @@ public class KeyManager extends KeyAdapter {
         if (action == null) {
             return;
         }
-        actionStates.put(action, State.FIRED);
-        updatedActions.add(action);
+        if (!actionStates.get(action).isActive()) {
+            actionStates.put(action, State.FIRED);
+            updatedActions.add(action);
+        }
     }
 
     @Override
@@ -76,8 +79,10 @@ public class KeyManager extends KeyAdapter {
         if (action == null) {
             return;
         }
-        actionStates.put(action, State.RELEASED);
-        updatedActions.add(action);
+        if (actionStates.get(action) == State.HELD) {
+            actionStates.put(action, State.RELEASED);
+            updatedActions.add(action);
+        }
     }
 
     public interface Controllable {
@@ -118,5 +123,9 @@ public class KeyManager extends KeyAdapter {
 
     public enum State {
         FIRED, HELD, RELEASED, INACTIVE;
+
+        public boolean isActive() {
+            return this == FIRED || this == HELD;
+        }
     }
 }

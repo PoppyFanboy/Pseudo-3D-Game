@@ -64,6 +64,6 @@ public class Level implements TileField.TileFieldObject {
             return false;
         return tile.coords.x >= 0 && tile.coords.x < size.x
                 && tile.coords.y >= 0 && tile.coords.y < size.y
-                && map.charAt(tile.coords.y * size.x + size.y) == '#';
+                && map.charAt(tile.coords.y * size.x + tile.coords.x) == '#';
     }
 }

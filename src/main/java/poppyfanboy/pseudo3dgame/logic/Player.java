@@ -11,6 +11,16 @@ public class Player implements TileField.TileFieldObject {
         this.coords = coords;
     }
 
+    public void shift(TileField tileField, Double2 v) {
+        remove(tileField);
+        coords = coords.add(v);
+        put(tileField);
+    }
+
+    public Double2 getCoords() {
+        return coords;
+    }
+
     @Override
     public void put(TileField tileField) {
         TileType.PLAYER.put(tileField, coords.toInt());

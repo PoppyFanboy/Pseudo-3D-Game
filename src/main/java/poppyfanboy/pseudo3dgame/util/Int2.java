@@ -8,6 +8,10 @@ public class Int2 {
         this.y = y;
     }
 
+    public Int2 add(Int2 other) {
+        return new Int2(this.x + other.x, this.y + other.y);
+    }
+
     @Override
     public boolean equals(Object other) {
         if (this == other)
