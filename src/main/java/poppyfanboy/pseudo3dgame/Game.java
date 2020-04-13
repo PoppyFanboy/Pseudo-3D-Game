@@ -12,15 +12,14 @@ public class Game {
     private Resolution resolution = Resolution._640x480;
     private Display display;
     private Thread thread;
-    private KeyManager keyManager = new KeyManager();
 
     private WalkingGameplay gameplay = new WalkingGameplay();
+    private InputManager inputManager = new InputManager(gameplay);
     private GameMap gameMap = new GameMap(gameplay);
 
     public Game(Resolution resolution) {
         display = new Display(resolution.getWidth(), resolution.getHeight(),
-                "test", keyManager);
-        keyManager.addListener(gameplay);
+                "test", inputManager);
     }
 
     public synchronized void start() {
@@ -45,7 +44,7 @@ public class Game {
     }
 
     private void tick() {
-        keyManager.tick();
+        inputManager.tick();
         gameplay.tick();
     }
 

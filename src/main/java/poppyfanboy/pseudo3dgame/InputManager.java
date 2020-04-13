@@ -3,47 +3,48 @@ package poppyfanboy.pseudo3dgame;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.util.*;
+import poppyfanboy.pseudo3dgame.logic.Player;
+import poppyfanboy.pseudo3dgame.logic.WalkingGameplay;
 import static java.awt.event.KeyEvent.*;
 
-public class KeyManager extends KeyAdapter {
+public class InputManager extends KeyAdapter {
     private EnumMap<Action, State> actionStates;
     private EnumSet<Action> activeActions;
-    private List<Controllable> listeners = new LinkedList<>();
 
-    public KeyManager() {
+    private WalkingGameplay walkingGameplay;
+
+    public InputManager(WalkingGameplay walkingGameplay) {
         actionStates = new EnumMap<>(Action.class);
         for (Action action : Action.values()) {
             actionStates.put(action, State.INACTIVE);
         }
         activeActions = EnumSet.noneOf(Action.class);
-    }
-
-    public void addListener(Controllable listener) {
-        listeners.add(listener);
-    }
-
-    public void unsubscribe(Controllable listener) {
-        listeners.remove(listener);
+        this.walkingGameplay = walkingGameplay;
     }
 
     public synchronized void tick() {
-        for (Controllable listener : listeners) {
-            listener.control(new Iterator<>() {
-                Iterator<Action> actions = activeActions.iterator();
-
-                @Override
-                public boolean hasNext() {
-                    return actions.hasNext();
-                }
-
-                @Override
-                public InputEntry next() {
-                    Action action = actions.next();
-                    State state = actionStates.get(action);
-                    return new InputEntry(action, state);
-                }
-            });
+        double forwardVelocity = 0, angleVelocity = 0;
+        for (Action action : activeActions) {
+            State state = actionStates.get(action);
+            if (!state.isActive()) {
+                continue;
+            }
+            switch (action) {
+                case MOVE_FORWARDS:
+                    forwardVelocity += Player.FORWARD_VELOCITY;
+                    break;
+                case MOVE_BACKWARDS:
+                    forwardVelocity -= Player.FORWARD_VELOCITY;
+                    break;
+                case ROTATE_LEFT:
+                    angleVelocity -= Player.ANGLE_VELOCITY;
+                    break;
+                case ROTATE_RIGHT:
+                    angleVelocity += Player.ANGLE_VELOCITY;
+                    break;
+            }
         }
+        walkingGameplay.setPlayerVelocity(forwardVelocity, angleVelocity);
 
         for (Action action : activeActions) {
             switch (actionStates.get(action)) {
@@ -59,7 +60,7 @@ public class KeyManager extends KeyAdapter {
     }
 
     @Override
-    public void keyPressed(KeyEvent e) {
+    public synchronized void keyPressed(KeyEvent e) {
         Action action = Action.parse(e.getKeyCode());
         if (action == null) {
             return;
@@ -71,7 +72,7 @@ public class KeyManager extends KeyAdapter {
     }
 
     @Override
-    public void keyReleased(KeyEvent e) {
+    public synchronized void keyReleased(KeyEvent e) {
         Action action = Action.parse(e.getKeyCode());
         if (action == null) {
             return;
@@ -79,20 +80,6 @@ public class KeyManager extends KeyAdapter {
         if (actionStates.get(action) == State.HELD) {
             actionStates.put(action, State.RELEASED);
             activeActions.add(action);
-        }
-    }
-
-    public interface Controllable {
-        void control(Iterator<InputEntry> inputs);
-    }
-
-    public static class InputEntry {
-        public final Action action;
-        public final State state;
-
-        public InputEntry(Action action, State state) {
-            this.action = action;
-            this.state = state;
         }
     }
 

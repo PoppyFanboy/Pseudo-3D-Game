@@ -1,7 +1,8 @@
 package poppyfanboy.pseudo3dgame.logic;
 
 import java.util.Iterator;
-import java.util.function.IntFunction;
+import poppyfanboy.pseudo3dgame.util.ArrayWrapper;
+import poppyfanboy.pseudo3dgame.util.Double2;
 import poppyfanboy.pseudo3dgame.util.Int2;
 
 public class TileField {
@@ -112,16 +113,29 @@ public class TileField {
         }
     }
 
-    public interface TileFieldObject {
-        void put(TileField tileField);
-        void remove(TileField tileField);
-        IntFunction<Tile> tiles();
-        int tilesCount();
-        boolean collides(Tile tile);
+    public abstract static class TileFieldObject {
+        private Double2 coords;
 
-        default boolean collides(TileFieldObject other) {
-            for (int i = 0; i < other.tilesCount(); i++) {
-                if (this.collides(other.tiles().apply(i)))
+        public TileFieldObject(Double2 coords) {
+            this.coords = coords;
+        }
+
+        public abstract void put(TileField tileField);
+        public abstract void remove(TileField tileField);
+        public abstract boolean collides(Tile tile);
+        public abstract ArrayWrapper<Tile> tiles();
+
+        public Double2 getCoords() {
+            return coords;
+        }
+
+        public void setCoords(Double2 coords) {
+            this.coords = coords;
+        }
+
+        public boolean collides(TileFieldObject other) {
+            for (Tile tile : other.tiles()) {
+                if (this.collides(tile))
                     return true;
             }
             return false;
@@ -131,11 +145,11 @@ public class TileField {
          * The {@code other} object is shifted in the specified direction and
          * then the collision is tested.
          */
-        default boolean collides(TileFieldObject other, Int2 shift) {
-            for (int i = 0; i < other.tilesCount(); i++) {
-                if (this.collides(other.tiles().apply(i).shift(shift))) {
+        public boolean collides(TileFieldObject other, Double2 shift) {
+            shift = shift.add(coords);
+            for (Tile tile : other.tiles()) {
+                if (this.collides(tile.shift(shift.toInt())))
                     return true;
-                }
             }
             return false;
         }

@@ -3,6 +3,7 @@ package poppyfanboy.pseudo3dgame.graphics;
 import java.awt.*;
 import poppyfanboy.pseudo3dgame.logic.*;
 import poppyfanboy.pseudo3dgame.logic.TileField.TileType;
+import poppyfanboy.pseudo3dgame.util.Double2;
 import poppyfanboy.pseudo3dgame.util.Int2;
 
 public class GameMap {
@@ -29,15 +30,18 @@ public class GameMap {
                             TILE_SIZE, TILE_SIZE);
                 }
             }
-        g.setColor(Color.RED);
-        Player player = gameplay.player;
-        double x = player.getCoords().x * TILE_SIZE;
-        double y = player.getCoords().y * TILE_SIZE;
-        double r = Player.RADIUS * TILE_SIZE, alpha = player.getAngle();
 
-        g.fillOval((int) (x - r / 2.0), (int) (y - r / 2.0), (int) r, (int) r);
+        g.setColor(Color.RED);
+        Double2 coords = gameplay.getPlayerCoords().times(TILE_SIZE);
+        Double2 faceDirection = gameplay.getPlayerRotation()
+                .apply(new Double2(TILE_SIZE, 0));
+        double r = Player.RADIUS * TILE_SIZE;
+
+        g.fillOval((int) (coords.x - r / 2.0), (int) (coords.y - r / 2.0),
+                (int) r, (int) r);
         g.setStroke(new BasicStroke(5));
-        g.drawLine((int) x, (int) y, (int) (x + Math.cos(alpha) * TILE_SIZE),
-                (int) (y + Math.sin(alpha) * TILE_SIZE));
+        g.drawLine((int) coords.x, (int) coords.y,
+                (int) coords.add(faceDirection).x,
+                (int) coords.add(faceDirection).y);
     }
 }

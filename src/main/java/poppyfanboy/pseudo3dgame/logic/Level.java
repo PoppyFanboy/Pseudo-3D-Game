@@ -1,10 +1,9 @@
 package poppyfanboy.pseudo3dgame.logic;
 
-import java.util.function.IntFunction;
 import poppyfanboy.pseudo3dgame.logic.TileField.TileType;
-import poppyfanboy.pseudo3dgame.util.Int2;
+import poppyfanboy.pseudo3dgame.util.*;
 
-public class Level implements TileField.TileFieldObject {
+public class Level extends TileField.TileFieldObject {
     private static final String map
         = "##########"
         + "#........#"
@@ -16,54 +15,60 @@ public class Level implements TileField.TileFieldObject {
         + "#....#...#"
         + "#....#...#"
         + "##########";
-    // only solid tiles are listed here
-    private static final TileField.Tile[] TILES;
+
     private static final Int2 size = new Int2(10, 10);
+    // only solid tiles are listed here
+    private static final TileField.Tile[] TILES = stringToTiles(map, size);
 
-    static {
-        int tilesCount = 0;
-        for (int i = 0; i < map.length(); i++) {
-            if (map.charAt(i) == '#')
-                tilesCount++;
-        }
-        TILES = new TileField.Tile[tilesCount];
-
-        for (int i = 0, tileIndex = 0; i < map.length(); i++)
-            if (map.charAt(i) == '#') {
-                TILES[tileIndex] = new TileField.Tile(TileType.WALL,
-                        new Int2(i % size.x, i / size.y));
-                tileIndex++;
-            }
+    public Level(Double2 coords) {
+        super(coords);
     }
 
     @Override
     public void put(TileField tileField) {
         for (TileField.Tile tile : TILES)
-            TileType.WALL.put(tileField, tile.coords);
+            TileType.WALL.put(tileField, getCoords().add(tile.coords).toInt());
     }
 
     @Override
     public void remove(TileField tileField) {
-        for (TileField.Tile tile : TILES)
-            TileType.WALL.remove(tileField, tile.coords);
+        for (TileField.Tile tile : TILES) {
+            TileType.WALL.remove(tileField,
+                    getCoords().add(tile.coords).toInt());
+        }
     }
 
     @Override
-    public IntFunction<TileField.Tile> tiles() {
-        return i -> i >= 0 && i < TILES.length ? TILES[i] : null;
-    }
-
-    @Override
-    public int tilesCount() {
-        return TILES.length;
+    public ArrayWrapper<TileField.Tile> tiles() {
+        return new ArrayWrapper<>(TILES);
     }
 
     @Override
     public boolean collides(TileField.Tile tile) {
         if (tile.tileType != TileType.WALL && tile.tileType != TileType.PLAYER)
             return false;
-        return tile.coords.x >= 0 && tile.coords.x < size.x
-                && tile.coords.y >= 0 && tile.coords.y < size.y
-                && map.charAt(tile.coords.y * size.x + tile.coords.x) == '#';
+        Int2 tileLocalCoords = tile.coords.add(getCoords().times(-1).toInt());
+        return tileLocalCoords.x >= 0 && tileLocalCoords.x < size.x
+                && tileLocalCoords.y >= 0 && tileLocalCoords.y < size.y
+                && map.charAt(tileLocalCoords.y * size.x
+                        + tileLocalCoords.x) == '#';
+    }
+
+    private static TileField.Tile[] stringToTiles(String map, Int2 size) {
+        TileField.Tile[] tiles = null;
+        for (int pass = 0; pass < 2; pass++) {
+            int tileIndex = 0;
+            for (int i = 0; i < map.length(); i++)
+                if (map.charAt(i) == '#') {
+                    if (pass == 1) {
+                        tiles[tileIndex] = new TileField.Tile(TileType.WALL,
+                                new Int2(i % size.x, i / size.y));
+                    }
+                    tileIndex++;
+                }
+            if (pass == 0)
+                tiles = new TileField.Tile[tileIndex];
+        }
+        return tiles;
     }
 }
