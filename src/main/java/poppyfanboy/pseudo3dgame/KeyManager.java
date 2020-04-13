@@ -7,8 +7,7 @@ import static java.awt.event.KeyEvent.*;
 
 public class KeyManager extends KeyAdapter {
     private EnumMap<Action, State> actionStates;
-    // actions updated during the current tick
-    private EnumSet<Action> updatedActions;
+    private EnumSet<Action> activeActions;
     private List<Controllable> listeners = new LinkedList<>();
 
     public KeyManager() {
@@ -16,7 +15,7 @@ public class KeyManager extends KeyAdapter {
         for (Action action : Action.values()) {
             actionStates.put(action, State.INACTIVE);
         }
-        updatedActions = EnumSet.noneOf(Action.class);
+        activeActions = EnumSet.noneOf(Action.class);
     }
 
     public void addListener(Controllable listener) {
@@ -30,7 +29,7 @@ public class KeyManager extends KeyAdapter {
     public synchronized void tick() {
         for (Controllable listener : listeners) {
             listener.control(new Iterator<>() {
-                Iterator<Action> actions = updatedActions.iterator();
+                Iterator<Action> actions = activeActions.iterator();
 
                 @Override
                 public boolean hasNext() {
@@ -46,16 +45,14 @@ public class KeyManager extends KeyAdapter {
             });
         }
 
-        for (Action action : updatedActions) {
+        for (Action action : activeActions) {
             switch (actionStates.get(action)) {
                 case FIRED:
                     actionStates.put(action, State.HELD);
                     break;
                 case RELEASED:
                     actionStates.put(action, State.INACTIVE);
-                    break;
-                default:
-                    updatedActions.remove(action);
+                    activeActions.remove(action);
                     break;
             }
         }
@@ -69,7 +66,7 @@ public class KeyManager extends KeyAdapter {
         }
         if (!actionStates.get(action).isActive()) {
             actionStates.put(action, State.FIRED);
-            updatedActions.add(action);
+            activeActions.add(action);
         }
     }
 
@@ -81,7 +78,7 @@ public class KeyManager extends KeyAdapter {
         }
         if (actionStates.get(action) == State.HELD) {
             actionStates.put(action, State.RELEASED);
-            updatedActions.add(action);
+            activeActions.add(action);
         }
     }
 
@@ -100,22 +97,22 @@ public class KeyManager extends KeyAdapter {
     }
 
     public enum Action {
-        MOVE_LEFT, MOVE_RIGHT, MOVE_UP, MOVE_DOWN;
+        ROTATE_LEFT, ROTATE_RIGHT, MOVE_FORWARDS, MOVE_BACKWARDS;
 
         public static Action parse(int keyCode) {
             switch (keyCode) {
                 case VK_LEFT:
                 case VK_A:
-                    return MOVE_LEFT;
+                    return ROTATE_LEFT;
                 case VK_RIGHT:
                 case VK_D:
-                    return MOVE_RIGHT;
+                    return ROTATE_RIGHT;
                 case VK_UP:
                 case VK_W:
-                    return MOVE_UP;
+                    return MOVE_FORWARDS;
                 case VK_DOWN:
                 case VK_S:
-                    return MOVE_DOWN;
+                    return MOVE_BACKWARDS;
             }
             return null;
         }

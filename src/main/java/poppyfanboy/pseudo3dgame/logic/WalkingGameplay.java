@@ -7,8 +7,8 @@ import poppyfanboy.pseudo3dgame.util.Int2;
 
 public class WalkingGameplay implements KeyManager.Controllable {
     private TileField tileField = new TileField(new Int2(10, 10));
-    private Player player;
-    private Level level;
+    public Player player;
+    public Level level;
 
     public WalkingGameplay() {
         // test code
@@ -22,37 +22,34 @@ public class WalkingGameplay implements KeyManager.Controllable {
         return tileField;
     }
 
-    private void playerControl(Double2 v) {
-        if (!level.collides(player, v.toInt())) {
-            player.shift(tileField, v);
-        }
+    public void tick() {
+        player.tick();
     }
 
     @Override
     public void control(Iterator<KeyManager.InputEntry> inputs) {
-        Double2 playerShift = new Double2(0, 0);
-
+        double forwardVelocity = 0, angleVelocity = 0;
         while (inputs.hasNext()) {
             var input = inputs.next();
-            if (input.state != KeyManager.State.FIRED) {
+            if (!input.state.isActive()) {
                 continue;
             }
             switch (input.action) {
-                case MOVE_UP:
-                    playerShift = playerShift.add(0, -1);
+                case MOVE_FORWARDS:
+                    forwardVelocity += Player.FORWARD_VELOCITY;
                     break;
-                case MOVE_DOWN:
-                    playerShift = playerShift.add(0, 1);
+                case MOVE_BACKWARDS:
+                    forwardVelocity -= Player.FORWARD_VELOCITY;
                     break;
-                case MOVE_LEFT:
-                    playerShift = playerShift.add(-1, 0);
+                case ROTATE_LEFT:
+                    angleVelocity -= Player.ANGLE_VELOCITY;
                     break;
-                case MOVE_RIGHT:
-                    playerShift = playerShift.add(1, 0);
+                case ROTATE_RIGHT:
+                    angleVelocity += Player.ANGLE_VELOCITY;
                     break;
             }
         }
-
-        playerControl(playerShift);
+        player.setAngleVelocity(angleVelocity);
+        player.setForwardVelocity(forwardVelocity);
     }
 }

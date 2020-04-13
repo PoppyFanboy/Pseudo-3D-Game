@@ -5,16 +5,34 @@ import poppyfanboy.pseudo3dgame.logic.TileField.TileType;
 import poppyfanboy.pseudo3dgame.util.Double2;
 
 public class Player implements TileField.TileFieldObject {
+    public static final double FORWARD_VELOCITY = 0.05;
+    public static final double ANGLE_VELOCITY = 0.05;
+    public static final double RADIUS = 0.5;
+
     private Double2 coords;
+    private double angle;
+    private double forwardVelocity, angleVelocity;
 
     public Player(Double2 coords) {
         this.coords = coords;
     }
 
-    public void shift(TileField tileField, Double2 v) {
-        remove(tileField);
-        coords = coords.add(v);
-        put(tileField);
+    public void tick() {
+        angle += angleVelocity;
+        coords = coords.add(Math.cos(angle) * forwardVelocity,
+                Math.sin(angle) * forwardVelocity);
+    }
+
+    public void setForwardVelocity(double velocity) {
+        forwardVelocity = velocity;
+    }
+
+    public void setAngleVelocity(double velocity) {
+        angleVelocity = velocity;
+    }
+
+    public double getAngle() {
+        return angle;
     }
 
     public Double2 getCoords() {

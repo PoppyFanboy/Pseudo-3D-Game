@@ -6,7 +6,7 @@ import poppyfanboy.pseudo3dgame.logic.WalkingGameplay;
 
 public class Game {
     private static final int MAX_FRAMESKIP = 5;
-    public static final int TICK_RATE = 50;
+    public static final int TICK_RATE = 100;
     private static final long TICK_DURATION = 1_000_000_000 / TICK_RATE;
 
     private Resolution resolution = Resolution._640x480;
@@ -46,6 +46,7 @@ public class Game {
 
     private void tick() {
         keyManager.tick();
+        gameplay.tick();
     }
 
     private void render(double interpolation) {
