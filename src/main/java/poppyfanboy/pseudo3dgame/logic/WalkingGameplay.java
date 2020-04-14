@@ -9,7 +9,7 @@ public class WalkingGameplay {
 
     public WalkingGameplay() {
         // test code
-        player = new Player(new Double2(1.5, 1.5));
+        player = new Player(new Double2(1.25, 1.25), tileField);
         level = new Level(new Double2(0, 0));
         player.put(tileField);
         level.put(tileField);

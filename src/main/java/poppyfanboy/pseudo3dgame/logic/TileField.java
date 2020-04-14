@@ -1,9 +1,9 @@
 package poppyfanboy.pseudo3dgame.logic;
 
+import java.util.Arrays;
 import java.util.Iterator;
-import poppyfanboy.pseudo3dgame.util.ArrayWrapper;
-import poppyfanboy.pseudo3dgame.util.Double2;
-import poppyfanboy.pseudo3dgame.util.Int2;
+import java.util.List;
+import poppyfanboy.pseudo3dgame.util.*;
 
 public class TileField {
     // how many objects a single tile can fit
@@ -23,20 +23,20 @@ public class TileField {
         return !rangeCheck(coords) || map[mapIndex(coords)] == 0;
     }
 
-    public Tile getTile(Int2 coords) {
+    public TileType getTile(Int2 coords) {
         if (!rangeCheck(coords)) {
-            return new Tile(TileType.EMPTY, coords);
+            return TileType.EMPTY;
         }
         int tileValue = map[mapIndex(coords)];
         if (tileValue == 0) {
-            return new Tile(TileType.EMPTY, coords);
+            return TileType.EMPTY;
         }
         TileType tileType = TileType
                 .values()[Integer.numberOfTrailingZeros(tileValue) + 1];
-        return new Tile(tileType, coords);
+        return tileType;
     }
 
-    public Iterator<Tile> getTiles(Int2 coords) {
+    public Iterator<TileType> getTiles(Int2 coords) {
         return new Iterator<>() {
             int tileValue = rangeCheck(coords) ? map[mapIndex(coords)] : 0;
             int tileIndex = tileValue == 0 ? 0 : 1;
@@ -49,10 +49,10 @@ public class TileField {
             }
 
             @Override
-            public Tile next() {
+            public TileType next() {
                 if (tileIndex == 0) {
                     tileIndex = -1;
-                    return new Tile(TileType.EMPTY, coords);
+                    return TileType.EMPTY;
                 }
                 int shift = Integer.numberOfTrailingZeros(tileValue);
                 TileType tileType = TileType.values()[tileIndex + shift];
@@ -61,9 +61,21 @@ public class TileField {
                 if (tileValue == 0) {
                     tileIndex = -1;
                 }
-                return new Tile(tileType, coords);
+                return tileType;
             }
         };
+    }
+
+    public boolean conflicts(Int2 coords, TileType tileType) {
+        if (isEmpty(coords)) {
+            return false;
+        }
+        Iterator<TileType> iterator = getTiles(coords);
+        while (iterator.hasNext()) {
+            if (tileType.conflicts(iterator.next()))
+                return true;
+        }
+        return false;
     }
 
     public Int2 getSize() {
@@ -82,6 +94,33 @@ public class TileField {
     public enum TileType {
         EMPTY, WALL, PLAYER;
 
+        private static final Double2[][] CONVEX_HULLS = {
+            // EMPTY
+            {  },
+            // WALL
+            {   new Double2(0, 0), new Double2(0, 1),
+                new Double2(1, 1), new Double2(1, 0) },
+            // PLAYER
+            {   new Double2(0.5 - Player.DIAMETER / 2,
+                        0.5 - Player.DIAMETER / 2),
+                new Double2(0.5 - Player.DIAMETER / 2,
+                        0.5 + Player.DIAMETER / 2),
+                new Double2(0.5 + Player.DIAMETER / 2,
+                        0.5 + Player.DIAMETER / 2),
+                new Double2(0.5 + Player.DIAMETER / 2,
+                        0.5 - Player.DIAMETER / 2) }
+        };
+
+        public boolean conflicts(TileType other) {
+            if (this == other) {
+                return false;
+            }
+            if (this.ordinal() > other.ordinal()) {
+                return other.conflicts(this);
+            }
+            return this == WALL && other == PLAYER;
+        }
+
         public int getBitMask() {
             return 1 << (ordinal() - 1) % TILE_CAPACITY;
         }
@@ -96,6 +135,10 @@ public class TileField {
             int i = tileField.mapIndex(coords);
             if (i < tileField.map.length)
                 tileField.map[i] = tileField.map[i] & ~getBitMask();
+        }
+
+        public List<Double2> getConvexHull() {
+            return Arrays.asList(CONVEX_HULLS[ordinal()]);
         }
     }
 
@@ -123,7 +166,7 @@ public class TileField {
         public abstract void put(TileField tileField);
         public abstract void remove(TileField tileField);
         public abstract boolean collides(Tile tile);
-        public abstract ArrayWrapper<Tile> tiles();
+        public abstract List<Tile> tiles();
 
         public Double2 getCoords() {
             return coords;

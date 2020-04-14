@@ -37,6 +37,8 @@ public class Display {
         g.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
         g.setRenderingHint(RenderingHints.KEY_RENDERING,
                 RenderingHints.VALUE_RENDER_QUALITY);
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                RenderingHints.VALUE_ANTIALIAS_ON);
         return g;
     }
 

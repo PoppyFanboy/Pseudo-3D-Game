@@ -1,5 +1,7 @@
 package poppyfanboy.pseudo3dgame.logic;
 
+import java.util.Arrays;
+import java.util.List;
 import poppyfanboy.pseudo3dgame.logic.TileField.TileType;
 import poppyfanboy.pseudo3dgame.util.*;
 
@@ -39,13 +41,13 @@ public class Level extends TileField.TileFieldObject {
     }
 
     @Override
-    public ArrayWrapper<TileField.Tile> tiles() {
-        return new ArrayWrapper<>(TILES);
+    public List<TileField.Tile> tiles() {
+        return Arrays.asList(TILES);
     }
 
     @Override
     public boolean collides(TileField.Tile tile) {
-        if (tile.tileType != TileType.WALL && tile.tileType != TileType.PLAYER)
+        if (tile.tileType.conflicts(TileType.WALL))
             return false;
         Int2 tileLocalCoords = tile.coords.add(getCoords().times(-1).toInt());
         return tileLocalCoords.x >= 0 && tileLocalCoords.x < size.x
