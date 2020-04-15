@@ -26,4 +26,12 @@ public class Rotation {
     public double getAngle() {
         return Math.atan2(sinX, cosX);
     }
+
+    public static double normalizeAngle(double angle) {
+        return fMod(angle + Math.PI, 2 * Math.PI) - Math.PI;
+    }
+
+    private static double fMod(double x, double y) {
+        return x - y * Math.floor(x / y);
+    }
 }

@@ -4,17 +4,18 @@ import java.awt.*;
 import java.awt.event.KeyListener;
 import java.awt.image.BufferStrategy;
 import javax.swing.JFrame;
+import poppyfanboy.pseudo3dgame.util.Int2;
 
 public class Display {
     private final BufferStrategy bufferStrategy;
     private Canvas canvas;
 
-    public Display(int width, int height, String title,
+    public Display(Int2 size, String title,
             KeyListener keyListener) {
         // window
         JFrame frame = new JFrame();
         frame.setTitle(title);
-        frame.setSize(width, height);
+        frame.setSize(size.x, size.y);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setResizable(false);
         frame.setLocationRelativeTo(null);
@@ -22,9 +23,9 @@ public class Display {
         frame.setVisible(true);
         // canvas
         canvas = new Canvas();
-        canvas.setMaximumSize(new Dimension(width, height));
-        canvas.setMinimumSize(new Dimension(width, height));
-        canvas.setPreferredSize(new Dimension(width, height));
+        canvas.setMaximumSize(new Dimension(size.x, size.y));
+        canvas.setMinimumSize(new Dimension(size.x, size.y));
+        canvas.setPreferredSize(new Dimension(size.x, size.y));
         canvas.setFocusable(false);
         frame.add(canvas);
         frame.pack();

@@ -6,8 +6,8 @@ import poppyfanboy.pseudo3dgame.logic.TileField.TileType;
 import poppyfanboy.pseudo3dgame.util.*;
 
 public class Player extends TileField.TileFieldObject {
-    public static final double FORWARD_VELOCITY = 0.05;
-    public static final double ANGLE_VELOCITY = 0.05;
+    public static final double FORWARD_VELOCITY = 0.025;
+    public static final double ANGLE_VELOCITY = 0.025;
     public static final double DIAMETER = 0.5;
 
     private Rotation rotation = new Rotation(0);
@@ -39,7 +39,8 @@ public class Player extends TileField.TileFieldObject {
             Double2 offset
                     = aabb.circleCollision(getCoords(), Player.DIAMETER / 2);
 
-            if (offset.nonZero() && !tileField.isEmpty(otherTileCoords.toInt())
+            if (offset.nonZero(1e-10)
+                    && !tileField.isEmpty(otherTileCoords.toInt())
                     && tileField.conflicts(
                             otherTileCoords.toInt(), TileType.PLAYER)) {
                 setCoords(getCoords().add(offset));

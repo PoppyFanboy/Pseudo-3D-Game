@@ -13,13 +13,12 @@ public class AABB {
         this.max = max;
     }
 
-    public boolean belongs(Double2 point) {
-        return point.x >= min.x && point.x <= max.x && point.y >= min.y
-                && point.y <= max.y;
-    }
-
+    /**
+     * AABBs are considered to be half-open, so that the adjacent ones do not
+     * intersect.
+     */
     public boolean inside(Double2 point) {
-        return point.x > min.x && point.x < max.x && point.y > min.y
+        return point.x >= min.x && point.x < max.x && point.y >= min.y
                 && point.y < max.y;
     }
 
@@ -30,8 +29,8 @@ public class AABB {
      */
     public Double2 circleCollision(Double2 center, double r) {
         r = Math.max(0, r);
-        Double2 offset = new Double2(0, 0);
         if (inside(center)) {
+            Double2 offset = new Double2(0, 0);
             if (center.y - min.y < r) {
                 offset = offset.add(0, r - (center.y - min.y));
             }
@@ -44,22 +43,27 @@ public class AABB {
             if (max.x - center.x < r) {
                 offset = offset.add(-r + (max.x - center.x), 0);
             }
+            return offset;
         } else {
             Double2 closest = new Double2(clamp(min.x, max.x, center.x),
                     clamp(min.y, max.y, center.y));
             if (center.dSqr(closest) < r * r) {
                 double xOffset = r - Math.abs(center.x - closest.x);
                 double yOffset = r - Math.abs(center.y - closest.y);
+                // angle case
+                if (center.x != closest.x && center.y != closest.y) {
+                    double d = center.d(closest);
+                    return center.sub(closest).times(r / d - 1);
+                }
                 if (xOffset < yOffset) {
-                    offset = offset.add(
+                    return new Double2(
                             Math.signum(center.x - closest.x) * xOffset, 0);
                 } else {
-                    offset = offset.add(
+                    return new Double2(
                             0, Math.signum(center.y - closest.y) * yOffset);
                 }
-            }
+            } else return new Double2(0, 0);
         }
-        return offset;
     }
 
     private static double clamp(double min, double max, double value) {

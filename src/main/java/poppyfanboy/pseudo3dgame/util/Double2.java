@@ -20,6 +20,10 @@ public class Double2 {
         return new Double2(this.x + x, this.y + y);
     }
 
+    public Double2 sub(Double2 other) {
+        return new Double2(this.x - other.x, this.y - other.y);
+    }
+
     public Double2 times(double coeff) {
         return new Double2(coeff * x, coeff * y);
     }
@@ -36,13 +40,31 @@ public class Double2 {
         return new Double2(Math.floor(x), Math.floor(y));
     }
 
+    public Double2 normalized() {
+        double norm = norm();
+        return new Double2(x / norm, y / norm);
+    }
+
     public double dSqr(Double2 other) {
         return (other.x - this.x) * (other.x - this.x)
                 + (other.y - this.y) * (other.y - this.y);
     }
 
+    public double d(Double2 other) {
+        return Math.sqrt((this.x - other.x) * (this.x - other.x)
+                + (this.y - other.y) * (this.y - other.y));
+    }
+
+    public double norm() {
+        return Math.sqrt(x * x + y * y);
+    }
+
     public boolean nonZero() {
         return x != 0 || y != 0;
+    }
+
+    public boolean nonZero(double eps) {
+        return Math.abs(x) >= eps || Math.abs(y) >= eps;
     }
 
     @Override
