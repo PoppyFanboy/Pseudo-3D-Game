@@ -1,6 +1,8 @@
 package poppyfanboy.pseudo3dgame;
 
 import java.awt.Graphics2D;
+import java.io.IOException;
+import poppyfanboy.pseudo3dgame.graphics.Assets;
 import poppyfanboy.pseudo3dgame.graphics.GameMap;
 import poppyfanboy.pseudo3dgame.graphics.PlayerCamera;
 import poppyfanboy.pseudo3dgame.logic.WalkingGameplay;
@@ -18,11 +20,11 @@ public class Game {
     private WalkingGameplay gameplay = new WalkingGameplay();
     private InputManager inputManager = new InputManager(gameplay);
     private GameMap gameMap = new GameMap(gameplay);
-    private PlayerCamera playerCamera
-            = new PlayerCamera(gameplay, resolution.getSize());
+    private PlayerCamera playerCamera;
 
-    public Game(Resolution resolution) {
+    public Game(Resolution resolution) throws IOException {
         display = new Display(resolution.getSize(), "test", inputManager);
+        playerCamera = new PlayerCamera(gameplay, resolution, new Assets());
     }
 
     public synchronized void start() {
@@ -73,8 +75,16 @@ public class Game {
             new Int2(1280, 960)
         };
 
+        private static final int[] BLOCK_SIZE = {
+            160, 200, 256, 320
+        };
+
         public Int2 getSize() {
             return WIDTH_HEIGHT[ordinal()];
+        }
+
+        public int getBlockSize() {
+            return BLOCK_SIZE[ordinal()];
         }
     }
 }

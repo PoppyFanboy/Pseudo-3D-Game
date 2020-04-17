@@ -39,15 +39,16 @@ public class WalkingGameplay {
      * This method definitely does something.
      *
      * @param   angle is relative to the player's direction of view.
-     * @param   maxRange is the maximum distance that the ray can travel away
-     *          from the player. If no obstacle is found within this range,
-     *          this method returns {@code Double.POSITIVE_INFINITY}.
+     * @param   maxRange is the maximum distance (in tiles) that the ray can
+     *          travel away from the player. If no obstacle is found within
+     *          this range, this method returns
+     *          {@code Double.POSITIVE_INFINITY}.
      */
-    public double playerRayCast(double angle, double maxRange) {
+    public RayCollision playerRayCast(double angle, int maxRange) {
         angle += player.getRotation().getAngle();
         angle = Rotation.normalizeAngle(angle);
         // distances to the horizontal/vertical walls
-        double hd = Double.POSITIVE_INFINITY, vd = Double.POSITIVE_INFINITY;
+        RayCollision h = new RayCollision(), v = new RayCollision();
         final Double2 coords = player.getCoords();
         // intersections with "horizontal" walls
         if (angle != 0 && angle != Math.PI) {
@@ -57,18 +58,25 @@ public class WalkingGameplay {
             double y = downwards ? Math.ceil(coords.y) : Math.floor(coords.y);
             double x = coords.x + (y - coords.y) / Math.tan(angle);
             Double2 current = new Double2(x, y);
-            hd = current.sub(coords).norm();
+            int tilesDistance = 0;
             // every next collisions are placed evenly (intercept theorem)
-            double dStep = Math.abs(1 / Math.sin(angle));
             Double2 step = new Double2(
                     (downwards ? 1 : -1) / Math.tan(angle), downwards ? 1 : -1);
-            while (hd <= maxRange) {
+            while (tilesDistance <= maxRange) {
                 Int2 tileCoords
                         = current.add(0, downwards ? 0.1 : -0.1).toInt();
-                if (!tileField.isEmpty(tileCoords)) break;
+                if (!tileField.isEmpty(tileCoords)) {
+                    h.tile = tileCoords;
+                    // needed for texture sampling
+                    h.hitPoint = downwards
+                            ? current.x % 1 : 1 - current.x % 1;
+                    break;
+                }
                 current = current.add(step);
-                hd += dStep;
-                if (hd > maxRange) hd = Double.POSITIVE_INFINITY;
+                tilesDistance++;
+            }
+            if (tilesDistance <= maxRange) {
+                h.d = Math.abs((current.y - coords.y) / Math.sin(angle));
             }
         }
         // intersections with "vertical" walls
@@ -78,19 +86,34 @@ public class WalkingGameplay {
             double x = right ? Math.ceil(coords.x) : Math.floor(coords.x);
             double y = coords.y + (x - coords.x) * Math.tan(angle);
             Double2 current = new Double2(x, y);
-            vd = current.sub(coords).norm();
+            int tilesDistance = 0;
             // next collisions
-            double dStep = Math.abs(1 / Math.cos(angle));
             Double2 step = new Double2(
                     right ? 1 : -1, (right ? 1 : -1) * Math.tan(angle));
-            while (vd <= maxRange) {
+            while (tilesDistance <= maxRange) {
                 Int2 tileCoords = current.add(right ? 0.1 : -0.1, 0).toInt();
-                if (!tileField.isEmpty(tileCoords)) break;
+                if (!tileField.isEmpty(tileCoords)) {
+                    v.tile = tileCoords;
+                    v.hitPoint = right ? 1 - current.y % 1 : current.y % 1;
+                    break;
+                }
                 current = current.add(step);
-                vd += dStep;
-                if (vd > maxRange) vd = Double.POSITIVE_INFINITY;
+                tilesDistance++;
+            }
+            if (tilesDistance <= maxRange) {
+                v.d = Math.abs((current.x - coords.x) / Math.cos(angle));
             }
         }
-        return Math.min(hd, vd);
+        if (h.d < v.d) {
+            return h;
+        } else {
+            return v;
+        }
+    }
+
+    public static class RayCollision {
+        public double d = Double.POSITIVE_INFINITY;
+        public Int2 tile;
+        public double hitPoint;
     }
 }
