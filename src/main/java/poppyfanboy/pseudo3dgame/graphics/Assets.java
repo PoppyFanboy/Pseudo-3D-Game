@@ -23,11 +23,14 @@ public class Assets {
                 TILE_SPRITE_SIZE, TILE_SPRITE_SIZE);
     }
 
-    public BufferedImage verticalSample(SpriteType spriteType, double x) {
+    public BufferedImage verticalSample(SpriteType spriteType, double x,
+            int width) {
         x = Math.max(0, Math.min(1, x));
         BufferedImage sprite = sprites.get(spriteType);
-        return sprite.getSubimage((int) (x * sprite.getWidth())
-                , 0, 1, sprite.getHeight());
+        int actualWidth = (int) Math.min(width, Math.max(
+                x + width, sprite.getWidth() + 1) - sprite.getWidth());
+        return sprite.getSubimage((int) (x * sprite.getWidth()),
+                0, actualWidth, sprite.getHeight());
     }
 
     private void loadSprite(SpriteType spriteType, String path,

@@ -6,12 +6,12 @@ import poppyfanboy.pseudo3dgame.logic.TileField.TileType;
 import poppyfanboy.pseudo3dgame.util.*;
 
 public class Player extends TileField.TileFieldObject {
-    public static final double FORWARD_VELOCITY = 0.025;
-    public static final double ANGLE_VELOCITY = 0.025;
+    public static final double FORWARD_VELOCITY = 0.04;
+    public static final double ANGLE_VELOCITY = 0.04;
     public static final double DIAMETER = 0.5;
 
-    private Rotation rotation = new Rotation(0);
-    private double vAngle, vForward;
+    private Rotation rotation = new Rotation(0), vAngle = new Rotation(0);
+    private double vForward;
     private TileField tileField;
 
     public Player(Double2 coords, TileField tileField) {
@@ -21,7 +21,7 @@ public class Player extends TileField.TileFieldObject {
 
     public void tick() {
         remove(tileField);
-        rotation = rotation.combine(new Rotation(vAngle));
+        rotation = rotation.combine(vAngle);
         Double2 velocity = rotation.apply(new Double2(vForward, 0));
         setCoords(getCoords().add(velocity));
         // collide with walls around the player
@@ -52,12 +52,20 @@ public class Player extends TileField.TileFieldObject {
     }
 
     public void setVelocity(double vForward, double vAngle) {
-        this.vAngle = vAngle;
+        this.vAngle = new Rotation(vAngle);
         this.vForward = vForward;
     }
 
     public Rotation getRotation() {
         return rotation;
+    }
+
+    public double getForwardVelocity() {
+        return vForward;
+    }
+
+    public Rotation getAngleVelocity() {
+        return vAngle;
     }
 
     @Override

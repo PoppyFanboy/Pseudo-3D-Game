@@ -1,18 +1,17 @@
 package poppyfanboy.pseudo3dgame.graphics;
 
-import java.awt.AlphaComposite;
-import java.awt.Color;
-import java.awt.Composite;
-import java.awt.Graphics2D;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import poppyfanboy.pseudo3dgame.Game;
 import poppyfanboy.pseudo3dgame.logic.WalkingGameplay;
-import poppyfanboy.pseudo3dgame.util.Int2;
+import poppyfanboy.pseudo3dgame.util.*;
 
 public class PlayerCamera {
     public static final double FOV = Math.PI / 3;
-    public static final int STRIP_WIDTH = 5;
+    public static final int STRIP_WIDTH = 1;
     public static final int WALL_HEIGHT = 1;
+
+    private Rotation delta, initialAngle;
 
     private Game.Resolution resolution;
     private Assets assets;
@@ -23,9 +22,12 @@ public class PlayerCamera {
         this.resolution = resolution;
         this.assets = assets;
         this.gameplay = gameplay;
+
+        delta = new Rotation(FOV / resolution.getSize().x * STRIP_WIDTH);
+        initialAngle = new Rotation(-FOV / 2);
     }
 
-    public void render(Graphics2D g) {
+    public void render(Graphics2D g, double interpolation) {
         if (gameplay == null) {
             return;
         }
@@ -34,25 +36,24 @@ public class PlayerCamera {
         double ppDistance = ppSize.x * 0.5 / Math.tan(FOV / 2);
 
         int stripsCount = ppSize.x / STRIP_WIDTH;
-        double angle = -FOV / 2;
+        Double2 coords = gameplay.getPlayerCoords();
+        Rotation playerAngle = gameplay.getPlayerRotation();
+        Rotation angle = initialAngle;
 
         for (int i = 0; i < stripsCount; i++) {
             // multiplying by cosine scales the distances an removes the fish
             // eye effect
-            WalkingGameplay.RayCollision rayCollision
-                    = gameplay.playerRayCast(angle, 10);
-            double d = rayCollision.d * Math.cos(angle);
+            WalkingGameplay.RayCollision rayCollision = gameplay.playerRayCast(
+                    coords, playerAngle.combine(angle), 10);
+            double d = rayCollision.d * angle.cos;
             double dProj = (double) WALL_HEIGHT / d * ppDistance;
 
             BufferedImage strip = assets.verticalSample(
                     Assets.SpriteType.BRICK_WALL,
-                    rayCollision.hitPoint);
-
-            for (int j = 0; j < STRIP_WIDTH; j++) {
-                g.drawImage(strip, i * STRIP_WIDTH + j,
-                        (int) ((ppSize.y - dProj) * 0.5), STRIP_WIDTH,
-                        (int) dProj, null);
-            }
+                    rayCollision.hitPoint, STRIP_WIDTH);
+            g.drawImage(strip, i * STRIP_WIDTH,
+                    (int) ((ppSize.y - dProj) * 0.5), STRIP_WIDTH,
+                    (int) dProj, null);
 
             Composite old = g.getComposite();
             g.setComposite(AlphaComposite.getInstance(
@@ -62,7 +63,7 @@ public class PlayerCamera {
                     STRIP_WIDTH, (int) dProj);
             g.setComposite(old);
 
-            angle += FOV / stripsCount;
+            angle = angle.combine(delta);
         }
     }
 }

@@ -10,10 +10,10 @@ import poppyfanboy.pseudo3dgame.util.Int2;
 
 public class Game {
     private static final int MAX_FRAMESKIP = 5;
-    public static final int TICK_RATE = 100;
+    public static final int TICK_RATE = 60;
     private static final long TICK_DURATION = 1_000_000_000 / TICK_RATE;
 
-    private Resolution resolution = Resolution._640x480;
+    private Resolution resolution;
     private Display display;
     private Thread thread;
 
@@ -55,7 +55,7 @@ public class Game {
 
     private void render(double interpolation) {
         Graphics2D g = display.getGraphics();
-        playerCamera.render(g);
+        playerCamera.render(g, interpolation);
         gameMap.render(g);
         g.dispose();
         display.render();

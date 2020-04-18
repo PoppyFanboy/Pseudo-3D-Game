@@ -1,30 +1,30 @@
 package poppyfanboy.pseudo3dgame.util;
 
 public class Rotation {
-    private double cosX, sinX;
+    public final double cos, sin;
 
     public Rotation(double angle) {
-        cosX = Math.cos(angle);
-        sinX = Math.sin(angle);
+        cos = Math.cos(angle);
+        sin = Math.sin(angle);
     }
 
-    private Rotation(double cosX, double sinX) {
-        this.cosX = cosX;
-        this.sinX = sinX;
+    private Rotation(double cos, double sin) {
+        this.cos = cos;
+        this.sin = sin;
     }
 
     public Double2 apply(Double2 v) {
-        return new Double2(cosX * v.x - sinX * v.y, sinX * v.x + cosX * v.y);
+        return new Double2(cos * v.x - sin * v.y, sin * v.x + cos * v.y);
     }
 
     public Rotation combine(Rotation other) {
         return new Rotation(
-                this.cosX * other.cosX - this.sinX * other.sinX,
-                this.sinX * other.cosX + this.cosX * other.sinX);
+                this.cos * other.cos - this.sin * other.sin,
+                this.sin * other.cos + this.cos * other.sin);
     }
 
     public double getAngle() {
-        return Math.atan2(sinX, cosX);
+        return Math.atan2(sin, cos);
     }
 
     public static double normalizeAngle(double angle) {
