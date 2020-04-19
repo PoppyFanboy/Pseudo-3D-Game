@@ -35,14 +35,6 @@ public class WalkingGameplay {
         return player.getCoords();
     }
 
-    public double getPlayerForwardVelocity() {
-        return player.getForwardVelocity();
-    }
-
-    public Rotation getPlayerAngleVelocity() {
-        return player.getAngleVelocity();
-    }
-
     /**
      * This method definitely does something.
      *
