@@ -39,15 +39,13 @@ public class WalkingGameplay {
      * This method definitely does something.
      *
      * @param   maxRange is the maximum distance (in tiles) that the ray can
-     *          travel away from the player. If no obstacle is found within
-     *          this range, this method returns an {@code RayCollision}
-     *          object that contains {@code Double.POSITIVE_INFINITY}
-     *          as the distance to the obstacle.
+     *          travel away from the player. Returns {@code null}
+     *          if no obstacle is found within this range.
      */
     public RayCollision playerRayCast(Double2 coords, Rotation angle,
             double maxRange) {
         // distances to the horizontal/vertical walls
-        RayCollision h = new RayCollision(), v = new RayCollision();
+        RayCollision h = null, v = null;
         // trigonometry
         double invSin = 1 / angle.sin, invCos = 1 / angle.cos;
         double tan = angle.sin * invCos, invTan = angle.cos * invSin;
@@ -61,7 +59,7 @@ public class WalkingGameplay {
         Double2 hStep = new Double2(
                 (downwards ? 1 : -1) * invTan, downwards ? 1 : -1);
         double hStepDist = Math.abs(invSin);
-        double hd = coords.d(hCurrent);
+        double hd = Math.abs((hCurrent.y - coords.y) * invSin);
 
         // intersections with "vertical" walls
         boolean right = angle.cos > 0;
@@ -70,7 +68,7 @@ public class WalkingGameplay {
         Double2 vCurrent = new Double2(xv, yv);
         Double2 vStep = new Double2(right ? 1 : -1, (right ? 1 : -1) * tan);
         double vStepDist = Math.abs(invCos);
-        double vd = coords.d(vCurrent);
+        double vd = Math.abs((vCurrent.y - coords.y) * invSin);
 
         boolean hHit = false, vHit = false;
         while (vd <= maxRange || hd <= maxRange) {
@@ -79,6 +77,7 @@ public class WalkingGameplay {
                 Int2 tileCoords
                         = hCurrent.add(0, downwards ? 0.1 : -0.1).toInt();
                 if (!tileField.isEmpty(tileCoords)) {
+                    h = new RayCollision();
                     h.tile = tileCoords;
                     h.hitPoint = downwards
                             ? hCurrent.x % 1
@@ -91,6 +90,7 @@ public class WalkingGameplay {
             if (!vHit && vd <= maxRange) {
                 Int2 tileCoords = vCurrent.add(right ? 0.1 : -0.1, 0).toInt();
                 if (!tileField.isEmpty(tileCoords)) {
+                    v = new RayCollision();
                     v.tile = tileCoords;
                     v.hitPoint = right ? 1 - vCurrent.y % 1 : vCurrent.y % 1;
                     v.d = Math.abs((vCurrent.x - coords.x) * invCos);
@@ -114,7 +114,7 @@ public class WalkingGameplay {
                 hd += hStepDist;
             }
         }
-        if (h.d < v.d) return h; else return v;
+        return null;
     }
 
     public static class RayCollision {

@@ -9,13 +9,8 @@ import poppyfanboy.pseudo3dgame.util.Int2;
 public class Display {
     private final BufferStrategy bufferStrategy;
     private Canvas canvas;
-    private boolean enableAntialiasing;
-    private Quality quality;
 
-    public Display(Int2 size, String title, KeyListener keyListener,
-            Quality quality, boolean enableAntialiasing) {
-        this.quality = quality;
-        this.enableAntialiasing = enableAntialiasing;
+    public Display(Int2 size, String title, KeyListener keyListener) {
         // window
         JFrame frame = new JFrame();
         frame.setTitle(title);
@@ -37,31 +32,21 @@ public class Display {
         bufferStrategy = canvas.getBufferStrategy();
     }
 
-    public Display(Int2 size, String title, KeyListener keyListener) {
-        this(size, title, keyListener, Quality.DEFAULT, false);
-    }
-
     public Graphics2D getGraphics() {
         Graphics2D g = (Graphics2D) bufferStrategy.getDrawGraphics();
         g.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
-        if (quality != Quality.DEFAULT) {
-            g.setRenderingHint(RenderingHints.KEY_RENDERING,
-                    quality == Quality.HIGH
-                        ? RenderingHints.VALUE_RENDER_QUALITY
-                        : RenderingHints.VALUE_RENDER_SPEED);
-        }
-        if (enableAntialiasing) {
-            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                    RenderingHints.VALUE_ANTIALIAS_ON);
-        }
+        g.setRenderingHint(RenderingHints.KEY_RENDERING,
+                RenderingHints.VALUE_RENDER_SPEED);
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                RenderingHints.VALUE_ANTIALIAS_OFF);
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+        g.setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION,
+                RenderingHints.VALUE_ALPHA_INTERPOLATION_SPEED);
         return g;
     }
 
     public void render() {
         bufferStrategy.show();
-    }
-
-    public enum Quality {
-        LOW, DEFAULT, HIGH
     }
 }

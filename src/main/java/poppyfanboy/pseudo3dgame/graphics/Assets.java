@@ -1,10 +1,8 @@
 package poppyfanboy.pseudo3dgame.graphics;
 
-import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
-import java.awt.image.DataBufferInt;
 import java.io.IOException;
 import java.util.EnumMap;
 import javax.imageio.ImageIO;
@@ -19,7 +17,7 @@ public class Assets {
 
     private Game.Resolution resolution;
     private EnumMap<SpriteType, BufferedImage> sprites;
-    private EnumMap<SpriteType, BufferedImage[]> spritesVerticalStrips;
+    private EnumMap<SpriteType, int[][]> spritesVerticalStrips;
 
     private BufferedImage hBuffer;
 
@@ -38,30 +36,17 @@ public class Assets {
                 BufferedImage.TYPE_INT_RGB);
     }
 
-    public BufferedImage verticalSample(SpriteType spriteType, double x) {
-        if (!spritesVerticalStrips.containsKey(spriteType)) {
-            return null;
-        }
+    public int[] verticalSample(SpriteType spriteType, double x) {
         x = Math.min(1, Math.max(0, x));
         int i = Math.min((int) (x * TILE_SPRITE_SIZE), TILE_SPRITE_SIZE - 1);
         return spritesVerticalStrips.get(spriteType)[i];
     }
 
-    public Color sample(SpriteType spriteType, Double2 coords) {
-        BufferedImage sprite = sprites.get(spriteType);
-        coords
-            = new Double2(((coords.x % 1) + 1) % 1, ((coords.y % 1) + 1) % 1);
-        return new Color(sprite.getRGB(
-                (int) (coords.x * sprite.getWidth()),
-                (int) (coords.y * sprite.getWidth())));
-    }
-
-    public BufferedImage lerpHorizontalSample(SpriteType spriteType,
+    public int[] lerpHorizontalSample(SpriteType spriteType,
             Double2 a, Double2 b, int width) {
         BufferedImage sprite = sprites.get(spriteType);
         // writing directly into the array is significantly faster
-        int[] data = ((DataBufferInt)
-                hBuffer.getRaster().getDataBuffer()).getData();
+        int[] data = new int[width];
         double dx = (b.x - a.x) / width * PlayerCamera.STRIP_WIDTH;
         double dy = (b.y - a.y) / width * PlayerCamera.STRIP_WIDTH;
         double tx = ((a.x % 1) + 1) % 1, ty = ((a.y % 1) + 1) % 1;
@@ -76,7 +61,7 @@ public class Assets {
             if (tx < 0) tx++; else if (tx >= 1) tx--;
             if (ty < 0) ty++; else if (ty >= 1) ty--;
         }
-        return hBuffer;
+        return data;
     }
 
     private void loadSprite(SpriteType spriteType, String path)
@@ -93,9 +78,11 @@ public class Assets {
         g.dispose();
 
 
-        BufferedImage[] spriteStrips = new BufferedImage[TILE_SPRITE_SIZE];
-        for (int i = 0; i < spriteStrips.length; i++) {
-            spriteStrips[i] = sprite.getSubimage(i, 0, 1, sprite.getHeight());
+        int[][] spriteStrips = new int[TILE_SPRITE_SIZE][TILE_SPRITE_SIZE];
+        for (int x = 0; x < TILE_SPRITE_SIZE; x++) {
+            for (int y = 0; y < TILE_SPRITE_SIZE; y++) {
+                spriteStrips[x][y] = sprite.getRGB(x, y);
+            }
         }
         spritesVerticalStrips.put(spriteType, spriteStrips);
         sprites.put(spriteType, sprite);
