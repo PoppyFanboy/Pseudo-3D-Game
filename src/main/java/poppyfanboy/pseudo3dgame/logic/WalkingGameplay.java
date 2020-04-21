@@ -40,70 +40,81 @@ public class WalkingGameplay {
      *
      * @param   maxRange is the maximum distance (in tiles) that the ray can
      *          travel away from the player. If no obstacle is found within
-     *          this range, this method returns
-     *          {@code Double.POSITIVE_INFINITY}.
+     *          this range, this method returns an {@code RayCollision}
+     *          object that contains {@code Double.POSITIVE_INFINITY}
+     *          as the distance to the obstacle.
      */
     public RayCollision playerRayCast(Double2 coords, Rotation angle,
-            int maxRange) {
+            double maxRange) {
         // distances to the horizontal/vertical walls
         RayCollision h = new RayCollision(), v = new RayCollision();
+        // trigonometry
+        double invSin = 1 / angle.sin, invCos = 1 / angle.cos;
+        double tan = angle.sin * invCos, invTan = angle.cos * invSin;
 
         // intersections with "horizontal" walls
         // up and down are shuffled because of the coordinates system
         boolean downwards = angle.sin > 0;
-        // coordinates of the first possible collision
-        double invSin = 1 / angle.sin, invCos = 1 / angle.cos;
-        double tan = invCos / invSin, invTan = 1 / tan;
-        double y = downwards ? Math.ceil(coords.y) : Math.floor(coords.y);
-        double x = coords.x + (y - coords.y) * invTan;
-        Double2 current = new Double2(x, y);
-        int tilesDistance = 0;
-        // every next collisions are placed evenly (intercept theorem)
-        Double2 step = new Double2(
+        double yh = downwards ? Math.ceil(coords.y) : Math.floor(coords.y);
+        double xh = coords.x + (yh - coords.y) * invTan;
+        Double2 hCurrent = new Double2(xh, yh);
+        Double2 hStep = new Double2(
                 (downwards ? 1 : -1) * invTan, downwards ? 1 : -1);
-        while (tilesDistance <= maxRange) {
-            Int2 tileCoords = current.add(0, downwards ? 0.1 : -0.1).toInt();
-            if (!tileField.isEmpty(tileCoords)) {
-                h.tile = tileCoords;
-                // needed for texture sampling
-                h.hitPoint = downwards ? current.x % 1 : 1 - current.x % 1;
-                break;
-            }
-            current = current.add(step);
-            tilesDistance++;
-        }
-        if (tilesDistance <= maxRange) {
-            h.d = Math.abs((current.y - coords.y) * invSin);
-        }
+        double hStepDist = Math.abs(invSin);
+        double hd = coords.d(hCurrent);
 
         // intersections with "vertical" walls
         boolean right = angle.cos > 0;
-        // first collision
-        x = right ? Math.ceil(coords.x) : Math.floor(coords.x);
-        y = coords.y + (x - coords.x) * tan;
-        current = new Double2(x, y);
-        tilesDistance = 0;
-        // next collisions
-        step = new Double2(right ? 1 : -1, (right ? 1 : -1) * tan);
-        while (tilesDistance <= maxRange) {
-            Int2 tileCoords = current.add(right ? 0.1 : -0.1, 0).toInt();
-            if (!tileField.isEmpty(tileCoords)) {
-                v.tile = tileCoords;
-                v.hitPoint = right ? 1 - current.y % 1 : current.y % 1;
-                break;
-            }
-            current = current.add(step);
-            tilesDistance++;
-        }
-        if (tilesDistance <= maxRange) {
-            v.d = Math.abs((current.x - coords.x) * invCos);
-        }
+        double xv = right ? Math.ceil(coords.x) : Math.floor(coords.x);
+        double yv = coords.y + (xv - coords.x) * tan;
+        Double2 vCurrent = new Double2(xv, yv);
+        Double2 vStep = new Double2(right ? 1 : -1, (right ? 1 : -1) * tan);
+        double vStepDist = Math.abs(invCos);
+        double vd = coords.d(vCurrent);
 
-        if (h.d < v.d) {
-            return h;
-        } else {
-            return v;
+        boolean hHit = false, vHit = false;
+        while (vd <= maxRange || hd <= maxRange) {
+            // horizontal intersections
+            if (!hHit && hd <= maxRange) {
+                Int2 tileCoords
+                        = hCurrent.add(0, downwards ? 0.1 : -0.1).toInt();
+                if (!tileField.isEmpty(tileCoords)) {
+                    h.tile = tileCoords;
+                    h.hitPoint = downwards
+                            ? hCurrent.x % 1
+                            : 1 - hCurrent.x % 1;
+                    h.d = Math.abs((hCurrent.y - coords.y) * invSin);
+                    hHit = true;
+                }
+            }
+            // vertical intersections
+            if (!vHit && vd <= maxRange) {
+                Int2 tileCoords = vCurrent.add(right ? 0.1 : -0.1, 0).toInt();
+                if (!tileField.isEmpty(tileCoords)) {
+                    v.tile = tileCoords;
+                    v.hitPoint = right ? 1 - vCurrent.y % 1 : vCurrent.y % 1;
+                    v.d = Math.abs((vCurrent.x - coords.x) * invCos);
+                    vHit = true;
+                }
+            }
+            // optimization
+            if (vHit && !hHit && vd < hd) return v;
+            if (!vHit && hHit && hd < vd) return h;
+            if (vHit && hHit) {
+                if (h.d < v.d) return h;
+                else return v;
+            }
+            // extend the rays
+            if (!vHit && vd <= maxRange) {
+                vCurrent = vCurrent.add(vStep);
+                vd += vStepDist;
+            }
+            if (!hHit && hd <= maxRange) {
+                hCurrent = hCurrent.add(hStep);
+                hd += hStepDist;
+            }
         }
+        if (h.d < v.d) return h; else return v;
     }
 
     public static class RayCollision {

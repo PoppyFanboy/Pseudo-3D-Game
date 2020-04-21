@@ -59,6 +59,10 @@ public class Double2 {
         return Math.sqrt(x * x + y * y);
     }
 
+    public double normSqr() {
+        return x * x + y * y;
+    }
+
     public boolean nonZero() {
         return x != 0 || y != 0;
     }

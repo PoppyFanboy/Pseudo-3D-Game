@@ -17,6 +17,14 @@ public class Rotation {
         return new Double2(cos * v.x - sin * v.y, sin * v.x + cos * v.y);
     }
 
+    public Double2 applyX(double x) {
+        return new Double2(cos * x, sin * x);
+    }
+
+    public Double2 applyY(double y) {
+        return new Double2(-sin * y, cos * y);
+    }
+
     public Rotation combine(Rotation other) {
         return new Rotation(
                 this.cos * other.cos - this.sin * other.sin,

@@ -7,11 +7,12 @@ import poppyfanboy.pseudo3dgame.logic.WalkingGameplay;
 import poppyfanboy.pseudo3dgame.util.*;
 
 public class PlayerCamera {
+    public static final int RENDER_DISTANCE = 10;
     public static final double FOV = Math.PI / 3;
-    public static final int STRIP_WIDTH = 4;
+    public static final int STRIP_WIDTH = 1;
     public static final int WALL_HEIGHT = 1;
 
-    private Rotation delta, initialAngle;
+    private Rotation delta, leftmostAngle, rightmostAngle;
 
     private Game.Resolution resolution;
     private Assets assets;
@@ -24,7 +25,8 @@ public class PlayerCamera {
         this.gameplay = gameplay;
 
         delta = new Rotation(FOV / resolution.getSize().x * STRIP_WIDTH);
-        initialAngle = new Rotation(-FOV / 2);
+        leftmostAngle = new Rotation(-FOV / 2);
+        rightmostAngle = new Rotation(FOV / 2);
     }
 
     public void render(Graphics2D g, double interpolation) {
@@ -39,29 +41,20 @@ public class PlayerCamera {
         Double2 coords = gameplay.getPlayerCoords();
         Rotation playerAngle = gameplay.getPlayerRotation();
 
-        Rotation angle = initialAngle;
-        for (int i = 0; i < stripsCount; i++) {
-            // multiplying by cosine scales the distances an removes the fish
-            // eye effect
-            WalkingGameplay.RayCollision rayCollision = gameplay.playerRayCast(
-                    coords, playerAngle.combine(angle), 10);
-            double d = rayCollision.d * angle.cos;
-            double dProj = (double) WALL_HEIGHT / d * ppDistance;
+        // drawing floor line by line
+        Rotation playerLeftmostAngle = playerAngle.combine(leftmostAngle);
+        Rotation playerRightmostAngle = playerAngle.combine(rightmostAngle);
+        for (int y = ppSize.y / 2 - 1; y < ppSize.y; y += STRIP_WIDTH) {
+            double dFloorForward = 0.5 / (y - ppSize.y / 2.0) * ppDistance;
 
-            // floor
-            for (int y = (int) (ppSize.y + dProj) / 2 - 1; y < ppSize.y;
-                    y += STRIP_WIDTH) {
-                // length of the projection of the vector from the spectator
-                // to the intersection with the floor
-                double dFloor
-                        = 0.5 / (y - ppSize.y / 2.0) * ppDistance / angle.cos;
-                Double2 floorCoords = coords.add(playerAngle.combine(angle)
-                        .apply(new Double2(dFloor, 0)));
-                g.setColor(assets.sample(Assets.SpriteType.BRICK_MOSSY_FLOOR,
-                        floorCoords.x % 1, floorCoords.y % 1));
-                g.fillRect(i * STRIP_WIDTH, y, STRIP_WIDTH, STRIP_WIDTH);
-            }
-            angle = angle.combine(delta);
+            Double2 floorCoordsLeft = coords.add(playerLeftmostAngle
+                    .applyX(dFloorForward / leftmostAngle.cos));
+            Double2 floorCoordsRight = coords.add(playerRightmostAngle
+                    .applyX(dFloorForward / rightmostAngle.cos));
+            g.drawImage(assets.lerpHorizontalSample(
+                    Assets.SpriteType.BRICK_MOSSY_FLOOR,
+                    floorCoordsLeft, floorCoordsRight,
+                    ppSize.x), 0, y, ppSize.x, STRIP_WIDTH, null);
         }
 
         // floor shading
@@ -76,12 +69,16 @@ public class PlayerCamera {
         }
         g.setComposite(old);
 
-        angle = initialAngle;
+        Rotation angle = leftmostAngle;
         for (int i = 0; i < stripsCount; i++) {
             // multiplying by cosine scales the distances an removes the fish
             // eye effect
             WalkingGameplay.RayCollision rayCollision = gameplay.playerRayCast(
-                    coords, playerAngle.combine(angle), 10);
+                    coords, playerAngle.combine(angle), RENDER_DISTANCE);
+            if (rayCollision.d == Double.POSITIVE_INFINITY) {
+                angle = angle.combine(delta);
+                continue;
+            }
             double d = rayCollision.d * angle.cos;
             double dProj = (double) WALL_HEIGHT / d * ppDistance;
 

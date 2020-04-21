@@ -24,7 +24,8 @@ public class Game {
 
     public Game(Resolution resolution) throws IOException {
         display = new Display(resolution.getSize(), "test", inputManager);
-        playerCamera = new PlayerCamera(gameplay, resolution, new Assets());
+        playerCamera = new PlayerCamera(gameplay, resolution,
+                new Assets(resolution));
     }
 
     public synchronized void start() {

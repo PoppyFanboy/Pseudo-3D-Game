@@ -8,5 +8,9 @@ bin/
 .project
 .classpath
 
+# temp files
+*~
+
+
 # ctags
 tags
