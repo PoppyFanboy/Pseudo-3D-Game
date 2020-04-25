@@ -72,8 +72,21 @@ public class WalkingGameplay {
 
         boolean hHit = false, vHit = false;
         while (vd <= maxRange || hd <= maxRange) {
-            // horizontal intersections
-            if (!hHit && hd <= maxRange) {
+            if (vd <= maxRange && vd < hd) {
+                Int2 tileCoords = vCurrent.add(right ? 0.1 : -0.1, 0).toInt();
+                if (!tileField.isEmpty(tileCoords)) {
+                    v = new RayCollision();
+                    v.tile = tileCoords;
+                    v.hitPoint = right ? 1 - vCurrent.y % 1 : vCurrent.y % 1;
+                    v.d = Math.abs((vCurrent.x - coords.x) * invCos);
+                    vHit = true;
+                }
+                if (vHit) {
+                    return v;
+                }
+                vCurrent = vCurrent.add(vStep);
+                vd += vStepDist;
+            } else if (hd <= maxRange) {
                 Int2 tileCoords
                         = hCurrent.add(0, downwards ? 0.1 : -0.1).toInt();
                 if (!tileField.isEmpty(tileCoords)) {
@@ -85,31 +98,9 @@ public class WalkingGameplay {
                     h.d = Math.abs((hCurrent.y - coords.y) * invSin);
                     hHit = true;
                 }
-            }
-            // vertical intersections
-            if (!vHit && vd <= maxRange) {
-                Int2 tileCoords = vCurrent.add(right ? 0.1 : -0.1, 0).toInt();
-                if (!tileField.isEmpty(tileCoords)) {
-                    v = new RayCollision();
-                    v.tile = tileCoords;
-                    v.hitPoint = right ? 1 - vCurrent.y % 1 : vCurrent.y % 1;
-                    v.d = Math.abs((vCurrent.x - coords.x) * invCos);
-                    vHit = true;
+                if (hHit) {
+                    return h;
                 }
-            }
-            // optimization
-            if (vHit && !hHit && vd < hd) return v;
-            if (!vHit && hHit && hd < vd) return h;
-            if (vHit && hHit) {
-                if (h.d < v.d) return h;
-                else return v;
-            }
-            // extend the rays
-            if (!vHit && vd <= maxRange) {
-                vCurrent = vCurrent.add(vStep);
-                vd += vStepDist;
-            }
-            if (!hHit && hd <= maxRange) {
                 hCurrent = hCurrent.add(hStep);
                 hd += hStepDist;
             }

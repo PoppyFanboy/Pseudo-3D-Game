@@ -42,6 +42,15 @@ public class Assets {
         return spritesVerticalStrips.get(spriteType)[i];
     }
 
+    public int sample(SpriteType spriteType, Double2 coords) {
+        BufferedImage sprite = sprites.get(spriteType);
+        int x = Math.min((int) ((coords.x % 1 + 1) % 1 * TILE_SPRITE_SIZE),
+                TILE_SPRITE_SIZE - 1);
+        int y = Math.min((int) ((coords.y % 1 + 1) % 1 * TILE_SPRITE_SIZE),
+                TILE_SPRITE_SIZE - 1);
+        return sprite.getRGB(x, y);
+    }
+
     public int[] lerpHorizontalSample(SpriteType spriteType,
             Double2 a, Double2 b, int width) {
         BufferedImage sprite = sprites.get(spriteType);
