@@ -3,6 +3,8 @@ package poppyfanboy.pseudo3dgame.graphics;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import poppyfanboy.pseudo3dgame.Game;
 import poppyfanboy.pseudo3dgame.logic.WalkingGameplay;
 import poppyfanboy.pseudo3dgame.util.*;
@@ -13,7 +15,10 @@ public class PlayerCamera {
     public static final int STRIP_WIDTH = 1;
     public static final int WALL_HEIGHT = 1;
 
-    private Rotation delta, leftmostAngle, rightmostAngle;
+    private DrawThread[] threads;
+    private BufferedImage buffer;
+
+    private Rotation leftmostAngle, rightmostAngle, delta;
     double ppDistance;
 
     Double2[] floorCoordsA, floorCoordsDelta;
@@ -22,9 +27,6 @@ public class PlayerCamera {
     private Assets assets;
     private WalkingGameplay gameplay;
 
-    // java graphics does not handle drawing pixel strips well
-    private BufferedImage buffer;
-
     public PlayerCamera(WalkingGameplay gameplay, Game.Resolution resolution,
             Assets assets) {
         this.resolution = resolution;
@@ -32,18 +34,71 @@ public class PlayerCamera {
         this.gameplay = gameplay;
 
         delta = new Rotation(FOV / resolution.getSize().x * STRIP_WIDTH);
+        ppDistance = resolution.getSize().x * 0.5 / Math.tan(FOV / 2);
         leftmostAngle = new Rotation(-FOV / 2);
         rightmostAngle = new Rotation(FOV / 2);
-        ppDistance = resolution.getSize().x * 0.5 / Math.tan(FOV / 2);
+
+        floorCoordsA = new Double2[resolution.getSize().y];
+        floorCoordsDelta = new Double2[resolution.getSize().y];
 
         buffer = new BufferedImage(resolution.getSize().x,
                 resolution.getSize().y, BufferedImage.TYPE_INT_RGB);
 
-        floorCoordsA = new Double2[resolution.getSize().y];
-        floorCoordsDelta = new Double2[resolution.getSize().y];
+        int threadsCount = Math.max(1,
+                Math.min(16, Math.min((resolution.getSize().x + 127) / 128,
+                        Runtime.getRuntime().availableProcessors())));
+        threadsCount = 3;
+        threads = new DrawThread[threadsCount];
+        int threadPaintWidth = resolution.getSize().x / threadsCount;
+        for (int i = 0; i < threadsCount; i++) {
+            threads[i] = new DrawThread(
+                    i * threadPaintWidth, Math.min(resolution.getSize().x,
+                    (i + 1) * threadPaintWidth));
+            threads[i].start();
+        }
+    }
+
+    private class DrawThread extends Thread {
+        private int fromX, toX;
+        private final BufferedImage buffer;
+        private volatile boolean buffering = false, rendering = false;
+
+        public DrawThread(int fromX, int toX) {
+            this.fromX = fromX;
+            this.toX = toX;
+            buffer = new BufferedImage(
+                    toX - fromX, resolution.getSize().y,
+                    BufferedImage.TYPE_INT_RGB);
+        }
+
+        public synchronized void setGraphics(Graphics2D g) {
+            rendering = true;
+            while (buffering)
+                Thread.onSpinWait();
+            g.drawImage(buffer, fromX, 0, null);
+            rendering = false;
+        }
+
+        @Override
+        public void run() {
+            render(buffer, fromX, toX);
+            while (true) {
+                buffering = true;
+                render(buffer, fromX, toX);
+                buffering = false;
+                while (rendering)
+                    Thread.onSpinWait();
+            }
+        }
     }
 
     public void render(Graphics2D g, double interpolation) {
+        for (DrawThread thread : threads) {
+            thread.setGraphics((Graphics2D) g.create());
+        }
+    }
+
+    public void render(BufferedImage buffer, int fromX, int toX) {
         if (gameplay == null) {
             return;
         }
@@ -59,7 +114,6 @@ public class PlayerCamera {
         }
         // projection plane (PP)
         Int2 ppSize = resolution.getSize();
-        int stripsCount = ppSize.x / STRIP_WIDTH;
         Double2 coords = gameplay.getPlayerCoords();
         Rotation playerAngle = gameplay.getPlayerRotation();
 
@@ -68,8 +122,8 @@ public class PlayerCamera {
         int yStart = (int) ((ppSize.y + ppDistance / RENDER_DISTANCE) * 0.5);
 
         int firstFloorY = ppSize.y;
-        Rotation angle = leftmostAngle;
-        for (int i = 0; i < stripsCount; i++) {
+        Rotation angle = new Rotation(FOV * (fromX - ppSize.x / 2.0) / ppSize.x);
+        for (int i = fromX; i < toX; i++) {
             // multiplying by cosine scales the distances an removes the fish
             // eye effect
             WalkingGameplay.RayCollision rayCollision = gameplay.playerRayCast(
@@ -93,10 +147,9 @@ public class PlayerCamera {
                 if (index >= bufferData.length) break;
 
                 int value = strip[(int) (y / dProj * strip.length)];
-                fillRect(bufferData, index, value, alpha8);
+                fillRect(bufferData, buffer.getWidth(), index, value, alpha8);
             }
 
-            // floor
             int floorStartY = (int) ((ppSize.y + dProj) / 2) - yStart;
             floorStartY = floorStartY / STRIP_WIDTH * STRIP_WIDTH;
 
@@ -128,18 +181,18 @@ public class PlayerCamera {
                         = (y + yStart) * buffer.getWidth() + i * STRIP_WIDTH;
                 int value = assets.sample(
                         Assets.SpriteType.BRICK_MOSSY_FLOOR, floorCoords);
-                fillRect(bufferData, index, value, alpha8);
+                fillRect(bufferData, buffer.getWidth(), index, value, alpha8);
             }
 
             angle = angle.combine(delta);
         }
-        g.drawImage(buffer, 0, 0, null);
     }
 
-    private void fillRect(int[] bufferData, int stripIndex, int value,
-            int alpha8) {
+    private void fillRect(int[] bufferData, int bufferWidth,
+            int stripIndex, int value, int alpha8) {
         if (STRIP_WIDTH == 1) {
-            bufferData[stripIndex] = darken(value, alpha8);
+            if (stripIndex < bufferData.length)
+                bufferData[stripIndex] = darken(value, alpha8);
         } else {
             int index = stripIndex;
             for (int j = 0; j < STRIP_WIDTH; j++) {
@@ -149,7 +202,7 @@ public class PlayerCamera {
                     }
                     index++;
                 }
-                index += buffer.getWidth() - STRIP_WIDTH;
+                index += bufferWidth - STRIP_WIDTH;
             }
         }
     }
