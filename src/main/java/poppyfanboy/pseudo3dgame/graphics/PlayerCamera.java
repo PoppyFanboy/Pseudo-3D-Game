@@ -3,8 +3,7 @@ package poppyfanboy.pseudo3dgame.graphics;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferInt;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.CountDownLatch;
 import poppyfanboy.pseudo3dgame.Game;
 import poppyfanboy.pseudo3dgame.logic.WalkingGameplay;
 import poppyfanboy.pseudo3dgame.util.*;
@@ -16,7 +15,6 @@ public class PlayerCamera {
     public static final int WALL_HEIGHT = 1;
 
     private DrawThread[] threads;
-    private BufferedImage buffer;
 
     private Rotation leftmostAngle, rightmostAngle, delta;
     double ppDistance;
@@ -41,27 +39,35 @@ public class PlayerCamera {
         floorCoordsA = new Double2[resolution.getSize().y];
         floorCoordsDelta = new Double2[resolution.getSize().y];
 
-        buffer = new BufferedImage(resolution.getSize().x,
-                resolution.getSize().y, BufferedImage.TYPE_INT_RGB);
+        final int threadRenderWidth = 256;
+        int threadsCount = Math.max(1, Math.min(16, Math.min(
+            (resolution.getSize().x + threadRenderWidth - 1)
+                    / threadRenderWidth,
+            Runtime.getRuntime().availableProcessors())));
 
-        int threadsCount = Math.max(1,
-                Math.min(16, Math.min((resolution.getSize().x + 127) / 128,
-                        Runtime.getRuntime().availableProcessors())));
-        threadsCount = 3;
         threads = new DrawThread[threadsCount];
-        int threadPaintWidth = resolution.getSize().x / threadsCount;
+        int threadPaintWidth
+                = resolution.getSize().x / STRIP_WIDTH / threadsCount;
         for (int i = 0; i < threadsCount; i++) {
-            threads[i] = new DrawThread(
-                    i * threadPaintWidth, Math.min(resolution.getSize().x,
-                    (i + 1) * threadPaintWidth));
+            int fromX = i * threadPaintWidth;
+            fromX *= STRIP_WIDTH;
+            int toX = Math.min(
+                    resolution.getSize().x, (i + 1) * threadPaintWidth);
+            toX *= STRIP_WIDTH;
+            if (i == threadsCount - 1) {
+                toX = resolution.getSize().x;
+            }
+            System.out.printf("%d, %d\n", fromX, toX);
+            threads[i] = new DrawThread(fromX, toX);
             threads[i].start();
         }
     }
 
     private class DrawThread extends Thread {
-        private int fromX, toX;
         private final BufferedImage buffer;
-        private volatile boolean buffering = false, rendering = false;
+        private volatile boolean renderTask = false;
+        private volatile CountDownLatch latch;
+        private int fromX, toX;
 
         public DrawThread(int fromX, int toX) {
             this.fromX = fromX;
@@ -71,30 +77,40 @@ public class PlayerCamera {
                     BufferedImage.TYPE_INT_RGB);
         }
 
-        public synchronized void setGraphics(Graphics2D g) {
-            rendering = true;
-            while (buffering)
-                Thread.onSpinWait();
-            g.drawImage(buffer, fromX, 0, null);
-            rendering = false;
+        public synchronized void startRenderTask(CountDownLatch latch) {
+            this.latch = latch;
+            renderTask = true;
         }
 
         @Override
         public void run() {
-            render(buffer, fromX, toX);
             while (true) {
-                buffering = true;
                 render(buffer, fromX, toX);
-                buffering = false;
-                while (rendering)
+                synchronized (this) {
+                    if (latch != null)
+                        latch.countDown();
+                    renderTask = false;
+                }
+                while (!renderTask)
                     Thread.onSpinWait();
             }
         }
     }
 
     public void render(Graphics2D g, double interpolation) {
+        CountDownLatch latch = new CountDownLatch(threads.length);
         for (DrawThread thread : threads) {
-            thread.setGraphics((Graphics2D) g.create());
+            thread.startRenderTask(latch);
+        }
+
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        for (DrawThread thread : threads) {
+            g.drawImage(thread.buffer, thread.fromX, 0, null);
         }
     }
 
@@ -120,10 +136,11 @@ public class PlayerCamera {
         Rotation playerLeftmostAngle = playerAngle.combine(leftmostAngle);
         Rotation playerRightmostAngle = playerAngle.combine(rightmostAngle);
         int yStart = (int) ((ppSize.y + ppDistance / RENDER_DISTANCE) * 0.5);
-
         int firstFloorY = ppSize.y;
-        Rotation angle = new Rotation(FOV * (fromX - ppSize.x / 2.0) / ppSize.x);
-        for (int i = fromX; i < toX; i++) {
+        Rotation angle
+                = new Rotation(FOV * (fromX - ppSize.x / 2.0) / ppSize.x);
+
+        for (int i = fromX / STRIP_WIDTH; i < toX / STRIP_WIDTH; i++) {
             // multiplying by cosine scales the distances an removes the fish
             // eye effect
             WalkingGameplay.RayCollision rayCollision = gameplay.playerRayCast(

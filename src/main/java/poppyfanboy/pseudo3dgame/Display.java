@@ -34,7 +34,6 @@ public class Display {
 
     public Graphics2D getGraphics() {
         Graphics2D g = (Graphics2D) bufferStrategy.getDrawGraphics();
-        g.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
         g.setRenderingHint(RenderingHints.KEY_RENDERING,
                 RenderingHints.VALUE_RENDER_SPEED);
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
