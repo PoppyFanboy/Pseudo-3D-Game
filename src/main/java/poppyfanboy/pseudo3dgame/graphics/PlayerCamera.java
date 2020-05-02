@@ -15,12 +15,14 @@ public class PlayerCamera {
     public static final int WALL_HEIGHT = 1;
 
     private DrawThread[] threads;
+    private final BufferedImage buffer;
+    private int fromX, toX;
 
-    private Rotation leftmostAngle, rightmostAngle, delta;
-    double ppDistance;
+    private Rotation delta;
+    private double ppDistance;
 
-    Double2[][] floorCoords;
-    int[] floorAlpha8;
+    private Double2[][] floorCoords;
+    private int[] floorAlpha8;
 
     private Game.Resolution resolution;
     private Assets assets;
@@ -34,8 +36,8 @@ public class PlayerCamera {
 
         delta = new Rotation(FOV / resolution.getSize().x * STRIP_WIDTH);
         ppDistance = resolution.getSize().x * 0.5 / Math.tan(FOV / 2);
-        leftmostAngle = new Rotation(-FOV / 2);
-        rightmostAngle = new Rotation(FOV / 2);
+        Rotation leftmostAngle = new Rotation(-FOV / 2);
+        Rotation rightmostAngle = new Rotation(FOV / 2);
 
         floorAlpha8 = new int[resolution.getSize().y];
         floorCoords = new Double2
@@ -48,16 +50,46 @@ public class PlayerCamera {
                     / threadRenderWidth,
             Runtime.getRuntime().availableProcessors())));
 
-        threads = new DrawThread[threadsCount];
+        threads = new DrawThread[threadsCount - 1];
         int threadPaintWidth = resolution.getSize().x / threadsCount
                 / STRIP_WIDTH * STRIP_WIDTH;
-        int fromX = 0;
-        for (int i = 0; i < threadsCount; i++, fromX += threadPaintWidth) {
-            threads[i] = new DrawThread(fromX,
+
+        this.fromX = 0;
+        this.toX = threadPaintWidth;
+        buffer = new BufferedImage(toX - fromX, resolution.getSize().y,
+                BufferedImage.TYPE_INT_RGB);
+
+        int fromX = threadPaintWidth;
+        for (int i = 1; i < threadsCount; i++, fromX += threadPaintWidth) {
+            threads[i - 1] = new DrawThread(fromX,
                     i == threadsCount - 1
                         ? resolution.getSize().x
                         : fromX + threadPaintWidth);
-            threads[i].start();
+            threads[i - 1].start();
+        }
+
+        Int2 ppSize = resolution.getSize();
+        int yStart = (int) ((ppSize.y + ppDistance / RENDER_DISTANCE) * 0.5);
+        for (int y = 0; y < resolution.getSize().y / 2; y += STRIP_WIDTH) {
+            double dFloorForward
+                    = 0.5 / (y + yStart - ppSize.y / 2.0) * ppDistance;
+            Double2 floorCoordsLeft = leftmostAngle
+                    .applyX(dFloorForward / leftmostAngle.cos);
+            Double2 floorCoordsRight = rightmostAngle
+                    .applyX(dFloorForward / rightmostAngle.cos);
+
+            Double2 floorCoordsDelta
+                    = floorCoordsRight.sub(floorCoordsLeft)
+                    .times((double) STRIP_WIDTH / ppSize.x);
+            Double2 currFloorCoords
+                    = floorCoordsLeft.add(floorCoordsDelta
+                    .times((double) this.fromX / STRIP_WIDTH));
+            for (int j = 0; j < resolution.getSize().x / STRIP_WIDTH; j++) {
+                floorCoords[y][j] = currFloorCoords;
+                currFloorCoords = currFloorCoords.add(floorCoordsDelta);
+            }
+            floorAlpha8[y] = (int) (0xFF
+                    * (1 - Math.min(1, dFloorForward / RENDER_DISTANCE)));
         }
     }
 
@@ -102,15 +134,21 @@ public class PlayerCamera {
     }
 
     public void render(Graphics2D g, double interpolation) {
-        CountDownLatch latch = new CountDownLatch(threads.length);
-        for (DrawThread thread : threads)
+        CountDownLatch latch = new CountDownLatch(threads.length + 1);
+        for (DrawThread thread : threads) {
             thread.startRenderTask(latch);
+        }
+        try {
+            render(buffer, fromX, toX);
+        } finally {
+            latch.countDown();
+        }
         try {
             latch.await();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-
+        g.drawImage(buffer, fromX, 0, null);
         for (DrawThread thread : threads)
             g.drawImage(thread.buffer, thread.fromX, 0, null);
     }
@@ -131,11 +169,9 @@ public class PlayerCamera {
         Double2 coords = gameplay.getPlayerCoords();
         Rotation playerAngle = gameplay.getPlayerRotation();
 
-        Rotation playerLeftmostAngle = playerAngle.combine(leftmostAngle);
-        Rotation playerRightmostAngle = playerAngle.combine(rightmostAngle);
         int yStart = (int) ((ppSize.y + ppDistance / RENDER_DISTANCE) * 0.5);
-        int firstFloorY = ppSize.y;
-        Rotation angle = new Rotation(FOV * (fromX - ppSize.x / 2.0) / ppSize.x);
+        Rotation angle
+                = new Rotation(FOV * (fromX - ppSize.x / 2.0) / ppSize.x);
 
         for (int i = 0; i < (toX - fromX) / STRIP_WIDTH; i++) {
             // multiplying by cosine scales the distances an removes the fish
@@ -173,37 +209,11 @@ public class PlayerCamera {
             floorStartY = Math.max(0, floorStartY);
             floorStartY = floorStartY / STRIP_WIDTH * STRIP_WIDTH;
 
-            // lazy floor computation
-            if (floorStartY < firstFloorY) {
-                for (int y = floorStartY; y < firstFloorY; y += STRIP_WIDTH) {
-                    double dFloorForward
-                            = 0.5 / (y + yStart - ppSize.y * 0.5) * ppDistance;
-                    Double2 floorCoordsLeft = coords.add(playerLeftmostAngle
-                            .applyX(dFloorForward / leftmostAngle.cos));
-                    Double2 floorCoordsRight = coords.add(playerRightmostAngle
-                            .applyX(dFloorForward / rightmostAngle.cos));
-
-                    Double2 floorCoordsDelta
-                            = floorCoordsRight.sub(floorCoordsLeft)
-                            .times((double) STRIP_WIDTH / ppSize.x);
-                    Double2 currFloorCoords
-                            = floorCoordsLeft.add(floorCoordsDelta
-                            .times((double) fromX / STRIP_WIDTH));
-                    for (int j = fromX / STRIP_WIDTH;
-                            j < toX / STRIP_WIDTH; j++) {
-                        floorCoords[y][j] = currFloorCoords;
-                        currFloorCoords = currFloorCoords.add(floorCoordsDelta);
-                    }
-                    floorAlpha8[y] = (int) (0xFF
-                        * (1 - Math.min(1, dFloorForward / RENDER_DISTANCE)));
-                }
-                firstFloorY = floorStartY;
-            }
-
             for (int y = floorStartY; y < ppSize.y - yStart; y += STRIP_WIDTH) {
                 int index = (y + yStart) * buffer.getWidth() + i * STRIP_WIDTH;
                 int value = assets.sample(Assets.SpriteType.BRICK_MOSSY_FLOOR,
-                        floorCoords[y][i + fromX / STRIP_WIDTH]);
+                        coords.add(playerAngle.apply(
+                            floorCoords[y][i + fromX / STRIP_WIDTH])));
                 fillRect(bufferData, buffer.getWidth(), index, value,
                         floorAlpha8[y]);
             }
