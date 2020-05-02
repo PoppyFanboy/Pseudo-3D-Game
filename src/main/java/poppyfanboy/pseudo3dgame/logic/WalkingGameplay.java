@@ -71,8 +71,10 @@ public class WalkingGameplay {
         double vd = Math.abs((vCurrent.y - coords.y) * invSin);
 
         boolean hHit = false, vHit = false;
-        while (vd <= maxRange || hd <= maxRange) {
-            if (vd <= maxRange && vd < hd) {
+        while (vd <= maxRange || hd <= maxRange)
+            if (vd < hd) {
+                if (vHit) return v;
+                if (vd > maxRange) return null;
                 Int2 tileCoords = vCurrent.add(right ? 0.1 : -0.1, 0).toInt();
                 if (!tileField.isEmpty(tileCoords)) {
                     v = new RayCollision();
@@ -81,12 +83,13 @@ public class WalkingGameplay {
                     v.d = Math.abs((vCurrent.x - coords.x) * invCos);
                     vHit = true;
                 }
-                if (vHit) {
-                    return v;
+                if (!vHit) {
+                    vCurrent = vCurrent.add(vStep);
+                    vd += vStepDist;
                 }
-                vCurrent = vCurrent.add(vStep);
-                vd += vStepDist;
-            } else if (hd <= maxRange) {
+            } else {
+                if (hHit) return h;
+                if (hd > maxRange) return null;
                 Int2 tileCoords
                         = hCurrent.add(0, downwards ? 0.1 : -0.1).toInt();
                 if (!tileField.isEmpty(tileCoords)) {
@@ -98,13 +101,11 @@ public class WalkingGameplay {
                     h.d = Math.abs((hCurrent.y - coords.y) * invSin);
                     hHit = true;
                 }
-                if (hHit) {
-                    return h;
+                if (!hHit) {
+                    hCurrent = hCurrent.add(hStep);
+                    hd += hStepDist;
                 }
-                hCurrent = hCurrent.add(hStep);
-                hd += hStepDist;
             }
-        }
         return null;
     }
 
