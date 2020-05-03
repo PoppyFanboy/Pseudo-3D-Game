@@ -9,7 +9,7 @@ import poppyfanboy.pseudo3dgame.logic.WalkingGameplay;
 import poppyfanboy.pseudo3dgame.util.*;
 
 public class PlayerCamera {
-    public static final int RENDER_DISTANCE = 8;
+    public static final int RENDER_DISTANCE = 100;
     public static final double FOV = Math.PI / 3;
     public static final int STRIP_WIDTH = 1;
     public static final int WALL_HEIGHT = 1;
@@ -186,9 +186,6 @@ public class PlayerCamera {
             // wall
             int wallStartY = (int) ((ppSize.y - dProj) * 0.5);
             if (rayCollision != null) {
-                int[] strip = assets.verticalSample(
-                        Assets.SpriteType.BRICK_WALL, rayCollision.hitPoint);
-
                 int alpha8 = (int) (0xFF
                         * (1 - Math.min(1, rayCollision.d / RENDER_DISTANCE)));
                 for (int y = 0; y < dProj; y += STRIP_WIDTH) {
@@ -199,7 +196,15 @@ public class PlayerCamera {
                     if (index >= bufferData.length)
                         break;
 
-                    int value = strip[(int) (y / dProj * strip.length)];
+                    Double2 textureCoords = new Double2(
+                            rayCollision.hitPoint, y / dProj);
+
+                    Double2 a = rayCollision.a.sub(coords).normalized();
+                    Double2 b = rayCollision.b.sub(coords).normalized();
+
+                    int value = assets.sample(Assets.SpriteType.BRICK_WALL,
+                            textureCoords,
+                            (int) ((Math.abs(a.x * b.x + a.y * b.y) / (Math.PI / 6))));
                     fillRect(bufferData, buffer.getWidth(), index, value,
                             alpha8);
                 }
@@ -210,10 +215,14 @@ public class PlayerCamera {
             floorStartY = floorStartY / STRIP_WIDTH * STRIP_WIDTH;
 
             for (int y = floorStartY; y < ppSize.y - yStart; y += STRIP_WIDTH) {
+                double dFloorForward
+                        = 0.5 / (y + yStart - ppSize.y / 2.0) * ppDistance;
+
                 int index = (y + yStart) * buffer.getWidth() + i * STRIP_WIDTH;
                 int value = assets.sample(Assets.SpriteType.BRICK_MOSSY_FLOOR,
                         coords.add(playerAngle.apply(
-                            floorCoords[y][i + fromX / STRIP_WIDTH])));
+                            floorCoords[y][i + fromX / STRIP_WIDTH])),
+                        0);
                 fillRect(bufferData, buffer.getWidth(), index, value,
                         floorAlpha8[y]);
             }
