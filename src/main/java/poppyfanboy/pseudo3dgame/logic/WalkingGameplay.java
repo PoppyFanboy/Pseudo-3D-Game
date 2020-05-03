@@ -81,8 +81,11 @@ public class WalkingGameplay {
                     v.tile = tileCoords;
                     v.hitPoint = right ? 1 - vCurrent.y % 1 : vCurrent.y % 1;
                     v.d = Math.abs((vCurrent.x - coords.x) * invCos);
-                    v.a = new Double2(vCurrent.x, Math.floor(vCurrent.y));
-                    v.b = new Double2(vCurrent.x, Math.ceil(vCurrent.y));
+
+                    Double2 v1 = vCurrent.sub(coords).normalized();
+                    Double2 v2 = new Double2(right ? 1 : -1, 0);
+                    v.normalCos = Math.abs((v1.x * v2.x + v1.y * v2.y));
+
                     vHit = true;
                 }
                 if (!vHit) {
@@ -101,8 +104,11 @@ public class WalkingGameplay {
                             ? hCurrent.x % 1
                             : 1 - hCurrent.x % 1;
                     h.d = Math.abs((hCurrent.y - coords.y) * invSin);
-                    h.a = new Double2(Math.floor(vCurrent.x), vCurrent.y);
-                    h.b = new Double2(Math.ceil(vCurrent.x), vCurrent.y);
+
+                    Double2 v1 = hCurrent.sub(coords).normalized();
+                    Double2 v2 = new Double2(0, downwards ? 1 : -1);
+                    h.normalCos = Math.abs((v1.x * v2.x + v1.y * v2.y));
+
                     hHit = true;
                 }
                 if (!hHit) {
@@ -118,6 +124,6 @@ public class WalkingGameplay {
         public Int2 tile;
         public double hitPoint;
 
-        public Double2 a, b;
+        public double normalCos;
     }
 }

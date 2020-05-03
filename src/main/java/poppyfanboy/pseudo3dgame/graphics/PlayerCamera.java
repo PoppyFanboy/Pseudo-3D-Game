@@ -9,7 +9,7 @@ import poppyfanboy.pseudo3dgame.logic.WalkingGameplay;
 import poppyfanboy.pseudo3dgame.util.*;
 
 public class PlayerCamera {
-    public static final int RENDER_DISTANCE = 100;
+    public static final int RENDER_DISTANCE = 10;
     public static final double FOV = Math.PI / 3;
     public static final int STRIP_WIDTH = 1;
     public static final int WALL_HEIGHT = 1;
@@ -50,6 +50,7 @@ public class PlayerCamera {
                     / threadRenderWidth,
             Runtime.getRuntime().availableProcessors())));
 
+        threadsCount = 4;
         threads = new DrawThread[threadsCount - 1];
         int threadPaintWidth = resolution.getSize().x / threadsCount
                 / STRIP_WIDTH * STRIP_WIDTH;
@@ -199,12 +200,16 @@ public class PlayerCamera {
                     Double2 textureCoords = new Double2(
                             rayCollision.hitPoint, y / dProj);
 
-                    Double2 a = rayCollision.a.sub(coords).normalized();
-                    Double2 b = rayCollision.b.sub(coords).normalized();
-
+                    double angleCoeff;
+                    if (rayCollision.normalCos > 0.2) {
+                        angleCoeff = 4 * (1 - rayCollision.normalCos);
+                    } else if (rayCollision.normalCos > 0.1) {
+                        angleCoeff = 6 * (1 - rayCollision.normalCos);
+                    } else {
+                        angleCoeff = 10 * (1 - rayCollision.normalCos);
+                    }
                     int value = assets.sample(Assets.SpriteType.BRICK_WALL,
-                            textureCoords,
-                            (int) ((Math.abs(a.x * b.x + a.y * b.y) / (Math.PI / 6))));
+                            textureCoords, (int) (64 / dProj * angleCoeff));
                     fillRect(bufferData, buffer.getWidth(), index, value,
                             alpha8);
                 }
@@ -222,7 +227,7 @@ public class PlayerCamera {
                 int value = assets.sample(Assets.SpriteType.BRICK_MOSSY_FLOOR,
                         coords.add(playerAngle.apply(
                             floorCoords[y][i + fromX / STRIP_WIDTH])),
-                        0);
+                        (int) Math.max(0, dFloorForward - 1));
                 fillRect(bufferData, buffer.getWidth(), index, value,
                         floorAlpha8[y]);
             }
