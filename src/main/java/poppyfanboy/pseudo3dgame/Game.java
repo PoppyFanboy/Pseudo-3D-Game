@@ -1,5 +1,6 @@
 package poppyfanboy.pseudo3dgame;
 
+import java.awt.Font;
 import java.awt.Graphics2D;
 import java.io.IOException;
 import poppyfanboy.pseudo3dgame.graphics.Assets;
@@ -13,6 +14,11 @@ public class Game {
     public static final int TICK_RATE = 60;
     private static final long TICK_DURATION = 1_000_000_000 / TICK_RATE;
 
+    private static final Font font = new Font("Monospaced", Font.PLAIN, 10);
+
+    private long fpsTimer = 0;
+    private int fpsCounter = 0, lastFPS = 0;
+
     private Resolution resolution;
     private Display display;
     private Thread thread;
@@ -23,6 +29,7 @@ public class Game {
     private PlayerCamera playerCamera;
 
     public Game(Resolution resolution) throws IOException {
+        this.resolution = resolution;
         display = new Display(resolution.getSize(), "test", inputManager);
         playerCamera = new PlayerCamera(gameplay, resolution,
                 new Assets(resolution));
@@ -33,17 +40,27 @@ public class Game {
             return;
         thread = new Thread(() -> {
             long nextTick = System.nanoTime();
+            long lastTick = nextTick;
             while (!Thread.currentThread().isInterrupted()) {
+                long now = System.nanoTime();
+                fpsTimer += now - lastTick;
+                lastTick = now;
                 int frameSkipCount = 0;
-                while (System.nanoTime() > nextTick
-                        && frameSkipCount < MAX_FRAMESKIP) {
+                while (now > nextTick && frameSkipCount < MAX_FRAMESKIP) {
                     tick();
                     nextTick += TICK_DURATION;
                     frameSkipCount++;
                 }
                 double interpolation = ((double) System.nanoTime()
                         - (nextTick - TICK_DURATION)) / TICK_DURATION;
-                render(interpolation);
+                render(lastFPS, interpolation);
+
+                fpsCounter++;
+                if (fpsTimer > 1_000_000_000){
+                    fpsTimer = 0;
+                    lastFPS = fpsCounter;
+                    fpsCounter = 0;
+                }
             }
         });
         thread.start();
@@ -54,10 +71,13 @@ public class Game {
         gameplay.tick();
     }
 
-    private void render(double interpolation) {
+    private void render(int fps, double interpolation) {
         Graphics2D g = display.getGraphics();
         playerCamera.render(g, interpolation);
         gameMap.render(g);
+        g.setFont(font);
+        g.drawString(String.format("FPS: %7d", fps),
+                resolution.getSize().x - 75, 10);
         g.dispose();
         display.render();
     }

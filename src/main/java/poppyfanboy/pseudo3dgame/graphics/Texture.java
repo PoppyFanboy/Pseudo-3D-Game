@@ -16,7 +16,7 @@ public class Texture {
         texturesPyramid.add(currentTexture);
         width /= 2; height /= 2;
         while (width != 1 || height != 1) {
-            currentTexture = resample(currentTexture, width, height);
+            currentTexture = resample(currentTexture);
             texturesPyramid.add(currentTexture);
             if (width > 1) width >>= 1;
             if (height > 1) height >>= 1;
@@ -29,12 +29,11 @@ public class Texture {
         return texturesPyramid[mipLevel];
     }
 
-    private static BufferedImage resample(BufferedImage texture,
-            int outWidth, int outHeight) {
-        double xSampleStep = 2;
-        double xStart = 0.5;
-        double ySampleStep = 2;
-        double yStart = 0.5;
+    private static BufferedImage resample(BufferedImage texture) {
+        int outWidth = texture.getWidth() / 2;
+        int outHeight = texture.getHeight() / 2;
+        double xSize = (double) texture.getWidth() / outWidth;
+        double ySize = (double) texture.getHeight() / outHeight;
 
         BufferedImage resampled = new BufferedImage(
                 outWidth, outHeight, BufferedImage.TYPE_INT_RGB);
@@ -42,8 +41,8 @@ public class Texture {
                 .getDataBuffer()).getData();
         for (int x = 0; x < outWidth; x++)
             for (int y = 0; y < outHeight; y++) {
-                double sampleX = xStart + x * xSampleStep;
-                double sampleY = yStart + y * ySampleStep;
+                double sampleX = (x + 0.5) * xSize - 0.5;
+                double sampleY = (y + 0.5) * ySize - 0.5;
                 data[y * outWidth + x] = sample(texture, sampleX, sampleY);
             }
         return resampled;
@@ -70,12 +69,13 @@ public class Texture {
     }
 
     private static int lerp(int colorA, int colorB, double t) {
-        int red = (int) (
-                (colorA >> 16 & 0xFF) * (1 - t) + (colorB >> 16 & 0xFF) * t);
-        int green = (int) (
-                (colorA >> 8 & 0xFF) * (1 - t) + (colorB >> 16 & 0xFF) * t);
-        int blue = (int) (
-                (colorA & 0xFF) * (1 - t) + (colorB >> 16 & 0xFF) * t);
+        int red = (int) ((colorA >> 16 & 0xFF)
+                + ((colorB >> 16 & 0xFF) - (colorA >> 16 & 0xFF)) * t);
+        int green = (int) ((colorA >> 8 & 0xFF)
+                + ((colorB >> 8 & 0xFF) - (colorA >> 8 & 0xFF)) * t);
+        int blue = (int) ((colorA & 0xFF)
+                + ((colorB & 0xFF) - (colorA & 0xFF)) * t);
+
         return red << 16 | green << 8 | blue;
     }
 }

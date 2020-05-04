@@ -71,10 +71,9 @@ public class WalkingGameplay {
         double vd = Math.abs((vCurrent.y - coords.y) * invSin);
 
         boolean hHit = false, vHit = false;
-        while (vd <= maxRange || hd <= maxRange)
+        while (true)
             if (vd < hd) {
-                if (vHit) return v;
-                if (vd > maxRange) return null;
+                if (vHit || vd > maxRange) return v;
                 Int2 tileCoords = vCurrent.add(right ? 0.1 : -0.1, 0).toInt();
                 if (!tileField.isEmpty(tileCoords)) {
                     v = new RayCollision();
@@ -83,8 +82,7 @@ public class WalkingGameplay {
                     v.d = Math.abs((vCurrent.x - coords.x) * invCos);
 
                     Double2 v1 = vCurrent.sub(coords).normalized();
-                    Double2 v2 = new Double2(right ? 1 : -1, 0);
-                    v.normalCos = Math.abs((v1.x * v2.x + v1.y * v2.y));
+                    v.normalCos = v1.x * (right ? 1 : -1);
 
                     vHit = true;
                 }
@@ -93,8 +91,7 @@ public class WalkingGameplay {
                     vd += vStepDist;
                 }
             } else {
-                if (hHit) return h;
-                if (hd > maxRange) return null;
+                if (hHit || hd > maxRange) return h;
                 Int2 tileCoords
                         = hCurrent.add(0, downwards ? 0.1 : -0.1).toInt();
                 if (!tileField.isEmpty(tileCoords)) {
@@ -106,8 +103,7 @@ public class WalkingGameplay {
                     h.d = Math.abs((hCurrent.y - coords.y) * invSin);
 
                     Double2 v1 = hCurrent.sub(coords).normalized();
-                    Double2 v2 = new Double2(0, downwards ? 1 : -1);
-                    h.normalCos = Math.abs((v1.x * v2.x + v1.y * v2.y));
+                    h.normalCos = v1.y * (downwards ? 1 : -1);
 
                     hHit = true;
                 }
@@ -116,14 +112,12 @@ public class WalkingGameplay {
                     hd += hStepDist;
                 }
             }
-        return null;
     }
 
     public static class RayCollision {
         public double d = Double.POSITIVE_INFINITY;
         public Int2 tile;
         public double hitPoint;
-
         public double normalCos;
     }
 }

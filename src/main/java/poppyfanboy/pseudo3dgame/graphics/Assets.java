@@ -17,13 +17,14 @@ public class Assets {
     private EnumMap<SpriteType, Texture> sprites;
 
     public enum SpriteType {
-        BRICK_WALL, BRICK_MOSSY_FLOOR;
+        BRICK_WALL, BRICK_MOSSY_FLOOR, WOOD_CEILING;
     }
 
     public Assets(Game.Resolution resolution) throws IOException {
         sprites = new EnumMap<>(SpriteType.class);
         loadSprite(SpriteType.BRICK_WALL, "wall.png");
         loadSprite(SpriteType.BRICK_MOSSY_FLOOR, "floor.png");
+        loadSprite(SpriteType.WOOD_CEILING, "ceiling.png");
     }
 
     public int sample(SpriteType spriteType, Double2 coords, int mipLevel) {
